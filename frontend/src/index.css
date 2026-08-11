@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: toggled by adding/removing `.dark` on <html>.
+   See src/store/themeStore.ts for the logic that sets it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  /* Semantic surface/text/border tokens: light values here, dark overrides
+     below under `.dark`. Components should reach for these (bg-background,
+     bg-surface, text-foreground, border-border, ...) instead of raw gray-N
+     scales, so a single edit here re-themes the whole app. */
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-foreground: #1e293b;
+  --color-muted: #64748b;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-background: #0f1117;
+  --color-surface: #181b25;
+  --color-surface-hover: #20242f;
+  --color-border: #2b2f3b;
+  --color-foreground: #e5e7eb;
+  --color-muted: #94a3b8;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+#root {
+  min-height: 100svh;
+}

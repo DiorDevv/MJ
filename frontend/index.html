@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MJ" />
+    <title>MJ</title>
+    <script>
+      // Applied before React mounts so there's no flash of the wrong theme.
+      // Mirrors the persisted shape of src/store/themeStore.ts (zustand `persist`).
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('mj_theme')
+          var theme = stored ? JSON.parse(stored).state.theme : null
+          if (!theme) {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          }
+          if (theme === 'dark') document.documentElement.classList.add('dark')
+        } catch {
+          /* ignore — theme store fixture falls back to system preference on mount */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

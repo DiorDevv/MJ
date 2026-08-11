@@ -1,0 +1,113 @@
+import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { Clock, Repeat, Trash2 } from 'lucide-react'
+import type { Task } from '../../types/task'
+import { Badge, Checkbox } from '../ui'
+import { cn } from '../../utils/cn'
+import { PRIORITY_BORDER_CLASS } from '../../utils/priority'
+import { useCompleteTask, useReopenTask, useUndoableDelete } from '../../hooks/useTaskMutations'
+import { SnoozeMenu } from './SnoozeMenu'
+import { showErrorToast, showUndoToast } from '../../utils/toast'
+
+interface TaskCardProps {
+  task: Task
+  onEdit: (task: Task) => void
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: (id: string) => void
+}
+
+export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }: TaskCardProps) {
+  const { t } = useTranslation()
+  const completeMutation = useCompleteTask()
+  const reopenMutation = useReopenTask()
+  const { scheduleDelete, cancelDelete } = useUndoableDelete()
+
+  const isCompleted = task.status === 'completed'
+
+  const handleToggle = () => {
+    const mutation = isCompleted ? reopenMutation : completeMutation
+    mutation.mutate(task.id, {
+      onError: () => showErrorToast(t('tasks.loadError')),
+    })
+  }
+
+  const handleDelete = () => {
+    scheduleDelete(task.id)
+    showUndoToast(t('tasks.deletedSuccess'), t('common.undo'), () => cancelDelete(task.id))
+  }
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      className={cn(
+        'group flex items-start gap-3 rounded-xl border border-l-4 border-border bg-surface p-4 shadow-sm transition-shadow hover:shadow-md',
+        PRIORITY_BORDER_CLASS[task.priority],
+        task.status === 'snoozed' && 'opacity-70',
+      )}
+    >
+      {selectable && (
+        <div className="pt-0.5">
+          <Checkbox
+            checked={selected ?? false}
+            onChange={() => onToggleSelect?.(task.id)}
+            aria-label={t('tasks.selectTask')}
+          />
+        </div>
+      )}
+
+      <div className="pt-0.5">
+        <Checkbox
+          checked={isCompleted}
+          onChange={handleToggle}
+          aria-label={t(isCompleted ? 'tasks.reopen' : 'tasks.complete')}
+        />
+      </div>
+
+      <button type="button" onClick={() => onEdit(task)} className="min-w-0 flex-1 text-left">
+        <p className={cn('font-medium text-foreground', isCompleted && 'text-muted line-through')}>
+          {task.title}
+        </p>
+        {task.description && (
+          <p className="mt-0.5 truncate text-sm text-muted">{task.description}</p>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+          <span className="inline-flex items-center gap-1">
+            <Clock className="size-3.5" aria-hidden="true" />
+            {task.due_time.slice(0, 5)}
+          </span>
+          {task.repeat_type !== 'none' && (
+            <span className="inline-flex items-center gap-1">
+              <Repeat className="size-3.5" aria-hidden="true" />
+              {t(`tasks.repeat_${task.repeat_type}`)}
+            </span>
+          )}
+          {task.category && (
+            <Badge variant="default">
+              <span
+                className="mr-1 inline-block size-2 rounded-full"
+                style={{ backgroundColor: task.category.color }}
+              />
+              {task.category.name}
+            </Badge>
+          )}
+        </div>
+      </button>
+
+      <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+        {!isCompleted && <SnoozeMenu taskId={task.id} />}
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label={t('common.delete')}
+          className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+    </motion.div>
+  )
+}
