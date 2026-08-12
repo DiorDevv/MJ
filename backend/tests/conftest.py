@@ -33,6 +33,7 @@ async def _ensure_test_database_exists() -> None:
 asyncio.run(_ensure_test_database_exists())
 
 import app.db.session as db_session_module  # noqa: E402
+from app.core.rate_limit import reset_rate_limits  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -54,6 +55,7 @@ async def _setup_schema() -> AsyncGenerator[None, None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+    reset_rate_limits()
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

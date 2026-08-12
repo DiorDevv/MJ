@@ -64,3 +64,7 @@ export interface SnoozeInput {
 export function snoozeTask(id: string, input: SnoozeInput): Promise<Task> {
   return authorizedRequest<Task>(`/v1/tasks/${id}/snooze`, { method: 'POST', body: input })
 }
+
+export function skipTask(id: string): Promise<Task> {
+  return authorizedRequest<Task>(`/v1/tasks/${id}/skip`, { method: 'POST' })
+}

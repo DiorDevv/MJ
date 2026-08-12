@@ -4,6 +4,7 @@ import { Bell, BellOff, MessageCircle } from 'lucide-react'
 import { useWebPush } from '../hooks/useWebPush'
 import { Badge, Button } from '../components/ui'
 import { TelegramLinkModal } from '../components/settings/TelegramLinkModal'
+import { CategoriesSection } from '../components/settings/CategoriesSection'
 import { useAuthStore } from '../store/authStore'
 import { showErrorToast, showSuccessToast } from '../utils/toast'
 
@@ -34,6 +35,8 @@ export function SettingsPage() {
         <h2 className="text-sm font-semibold text-foreground">{t('settings.account')}</h2>
         <p className="mt-1 text-sm text-muted">{user?.username}</p>
       </section>
+
+      <CategoriesSection />
 
       <section className="rounded-xl border border-border bg-surface p-5">
         <div className="flex items-start justify-between gap-4">

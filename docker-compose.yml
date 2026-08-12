@@ -9,8 +9,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # No host port mapping: only reachable from other containers on
+    # mj_network. For local psql/DB-client access, see docker-compose.override.yml.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -32,8 +32,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8001:8000"
+    # No host port mapping: reached only via the nginx reverse proxy. For
+    # local curl/API-client access, see docker-compose.override.yml.
     volumes:
       - ./backend:/app
     networks:
@@ -49,8 +49,8 @@ services:
       - .env
     depends_on:
       - backend
-    ports:
-      - "5173:5173"
+    # No host port mapping: reached only via the nginx reverse proxy. For
+    # local direct access to the Vite dev server, see docker-compose.override.yml.
     volumes:
       - ./frontend:/app
       - /app/node_modules

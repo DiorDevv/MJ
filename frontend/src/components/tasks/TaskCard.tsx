@@ -1,13 +1,19 @@
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { Clock, Repeat, Trash2 } from 'lucide-react'
+import { Clock, Repeat, SkipForward, Trash2 } from 'lucide-react'
 import type { Task } from '../../types/task'
 import { Badge, Checkbox } from '../ui'
 import { cn } from '../../utils/cn'
 import { PRIORITY_BORDER_CLASS } from '../../utils/priority'
-import { useCompleteTask, useReopenTask, useUndoableDelete } from '../../hooks/useTaskMutations'
+import {
+  useCompleteTask,
+  useReopenTask,
+  useSkipTask,
+  useUndoableDelete,
+} from '../../hooks/useTaskMutations'
 import { SnoozeMenu } from './SnoozeMenu'
-import { showErrorToast, showUndoToast } from '../../utils/toast'
+import { showErrorToast, showSuccessToast, showUndoToast } from '../../utils/toast'
+import { ApiError } from '../../api/client'
 
 interface TaskCardProps {
   task: Task
@@ -21,9 +27,11 @@ export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }:
   const { t } = useTranslation()
   const completeMutation = useCompleteTask()
   const reopenMutation = useReopenTask()
+  const skipMutation = useSkipTask()
   const { scheduleDelete, cancelDelete } = useUndoableDelete()
 
   const isCompleted = task.status === 'completed'
+  const isRecurring = task.repeat_type !== 'none'
 
   const handleToggle = () => {
     const mutation = isCompleted ? reopenMutation : completeMutation
@@ -35,6 +43,15 @@ export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }:
   const handleDelete = () => {
     scheduleDelete(task.id)
     showUndoToast(t('tasks.deletedSuccess'), t('common.undo'), () => cancelDelete(task.id))
+  }
+
+  const handleSkip = () => {
+    skipMutation.mutate(task.id, {
+      onSuccess: () => showSuccessToast(t('tasks.skippedSuccess')),
+      onError: (error) => {
+        showErrorToast(error instanceof ApiError ? error.message : t('tasks.loadError'))
+      },
+    })
   }
 
   return (
@@ -99,6 +116,18 @@ export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }:
 
       <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
         {!isCompleted && <SnoozeMenu taskId={task.id} />}
+        {!isCompleted && isRecurring && (
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={skipMutation.isPending}
+            aria-label={t('tasks.skip')}
+            title={t('tasks.skip')}
+            className="flex size-8 items-center justify-center rounded-lg text-muted hover:bg-surface-hover hover:text-foreground disabled:opacity-50"
+          >
+            <SkipForward className="size-4" aria-hidden="true" />
+          </button>
+        )}
         <button
           type="button"
           onClick={handleDelete}

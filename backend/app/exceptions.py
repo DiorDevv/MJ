@@ -41,3 +41,13 @@ class CategoryNotFoundError(AppException):
 class InvalidSnoozeTimeError(AppException):
     status_code = 422
     detail = "Kechiktirish vaqti kelajakda bo'lishi kerak"
+
+
+class RateLimitExceededError(AppException):
+    status_code = 429
+    detail = "Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring."
+
+
+class CannotSkipNonRecurringTaskError(AppException):
+    status_code = 422
+    detail = "Faqat takrorlanuvchi vazifalarni o'tkazib yuborish mumkin"

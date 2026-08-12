@@ -4,6 +4,7 @@ import {
   createTask,
   deleteTask,
   reopenTask,
+  skipTask,
   snoozeTask,
   updateTask,
   type SnoozeInput,
@@ -75,6 +76,19 @@ export function useSnoozeTask() {
     onMutate: ({ id }) => optimistic.apply(id, { status: 'snoozed' as TaskStatus }),
     onError: (_err, _vars, previous) => previous && optimistic.rollback(previous),
     onSettled: optimistic.settle,
+  })
+}
+
+export function useSkipTask() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    // Skip replaces the row with a new occurrence (different id), so an
+    // optimistic patch doesn't apply the way complete/reopen/snooze do —
+    // just refetch once the new occurrence exists server-side.
+    mutationFn: (id: string) => skipTask(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY] })
+    },
   })
 }
 

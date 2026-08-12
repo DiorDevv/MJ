@@ -2,11 +2,12 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
 from app.exceptions import InvalidCredentialsError, UsernameAlreadyExistsError
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.user import UserCreate
 
@@ -40,6 +41,36 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> U
     if user is None or not verify_password(password, user.hashed_password):
         raise InvalidCredentialsError()
     return user
+
+
+async def store_refresh_token(
+    db: AsyncSession, jti: uuid.UUID, user_id: uuid.UUID, expires_at: datetime
+) -> None:
+    db.add(RefreshToken(id=jti, user_id=user_id, expires_at=expires_at))
+    await db.commit()
+
+
+async def is_refresh_token_valid(db: AsyncSession, jti: uuid.UUID) -> bool:
+    token = await db.get(RefreshToken, jti)
+    if token is None or token.revoked_at is not None:
+        return False
+    return token.expires_at > datetime.now(UTC)
+
+
+async def revoke_refresh_token(db: AsyncSession, jti: uuid.UUID) -> None:
+    token = await db.get(RefreshToken, jti)
+    if token is not None and token.revoked_at is None:
+        token.revoked_at = datetime.now(UTC)
+        await db.commit()
+
+
+async def revoke_all_refresh_tokens(db: AsyncSession, user_id: uuid.UUID) -> None:
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(UTC))
+    )
+    await db.commit()
 
 
 async def generate_telegram_link_code(db: AsyncSession, user: User) -> tuple[str, datetime]:

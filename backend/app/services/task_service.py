@@ -1,3 +1,4 @@
+import calendar
 import uuid
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
@@ -7,9 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.exceptions import CategoryNotFoundError, InvalidSnoozeTimeError, TaskNotFoundError
+from app.exceptions import (
+    CannotSkipNonRecurringTaskError,
+    CategoryNotFoundError,
+    InvalidSnoozeTimeError,
+    TaskNotFoundError,
+)
 from app.models.category import Category
-from app.models.enums import CreatedVia, Priority, TaskStatus
+from app.models.enums import CreatedVia, Priority, RepeatType, TaskStatus
 from app.models.task import Task
 from app.schemas.task import SnoozeRequest, TaskCreate, TaskUpdate
 
@@ -24,6 +30,21 @@ SortBy = Literal["due_date", "priority", "created_at"]
 SortOrder = Literal["asc", "desc"]
 
 _SNOOZE_PRESET_DELTAS = {"15m": timedelta(minutes=15), "1h": timedelta(hours=1)}
+
+
+def _add_one_month(current: date) -> date:
+    year = current.year + current.month // 12
+    month = current.month % 12 + 1
+    day = min(current.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def next_due_date(current: date, repeat_type: RepeatType) -> date:
+    if repeat_type == RepeatType.DAILY:
+        return current + timedelta(days=1)
+    if repeat_type == RepeatType.WEEKLY:
+        return current + timedelta(days=7)
+    return _add_one_month(current)
 
 
 async def _get_owned_category(
@@ -223,3 +244,32 @@ async def snooze_task(
     await db.commit()
     task = await _reload_task(db, task.id)
     return task
+
+
+async def skip_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID) -> Task:
+    """Advances a recurring task straight to its next occurrence — for "I'm not
+    doing this one, but keep reminding me next time" — without marking this
+    occurrence completed (so it doesn't count toward the completion rate) and
+    without silently ending the series the way a plain delete would (no
+    successor would ever be spawned, since that only happens when a reminder
+    fires for the occurrence being skipped over)."""
+    task = await get_task(db, user_id, task_id)
+    if task.repeat_type == RepeatType.NONE:
+        raise CannotSkipNonRecurringTaskError()
+
+    next_task = Task(
+        user_id=task.user_id,
+        title=task.title,
+        description=task.description,
+        due_date=next_due_date(task.due_date, task.repeat_type),
+        due_time=task.due_time,
+        repeat_type=task.repeat_type,
+        category_id=task.category_id,
+        priority=task.priority,
+        status=TaskStatus.PENDING,
+        created_via=task.created_via,
+    )
+    db.add(next_task)
+    await db.delete(task)
+    await db.commit()
+    return await _reload_task(db, next_task.id)

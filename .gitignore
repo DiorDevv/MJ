@@ -35,3 +35,7 @@ dist-ssr/
 
 # --- Alembic (keep versions, ignore local db files) ---
 *.sqlite3
+
+# --- TLS certificates / DB backups (never commit) ---
+nginx/certs/*.pem
+backups/

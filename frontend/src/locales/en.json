@@ -95,6 +95,8 @@
     "filterCompleted": "Completed",
     "filterSnoozed": "Snoozed",
     "snooze": "Snooze",
+    "skip": "Skip this occurrence",
+    "skippedSuccess": "Skipped — next occurrence scheduled",
     "snooze15m": "15 minutes",
     "snooze1h": "1 hour",
     "snoozeTomorrow": "Tomorrow",
@@ -145,7 +147,12 @@
     "telegramCodeExpired": "Code expired. Request a new one.",
     "telegramLinkError": "Couldn't get a code",
     "telegramLinkSuccess": "Telegram linked!",
-    "telegramNotYetLinked": "Not linked yet. Make sure you sent the code to the bot."
+    "telegramNotYetLinked": "Not linked yet. Make sure you sent the code to the bot.",
+    "categories": "Categories",
+    "categoriesDescription": "Manage the categories you use to group tasks.",
+    "noCategories": "No categories yet",
+    "categoryUpdated": "Category updated",
+    "categoryDeleted": "Category deleted"
   },
   "errors": {
     "notFoundTitle": "Page not found",

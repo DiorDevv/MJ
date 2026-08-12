@@ -110,3 +110,12 @@ async def snooze_task(
     db: AsyncSession = Depends(get_db),
 ) -> Task:
     return await task_service.snooze_task(db, current_user.id, task_id, snooze_in)
+
+
+@router.post("/{task_id}/skip", response_model=TaskRead)
+async def skip_task(
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Task:
+    return await task_service.skip_task(db, current_user.id, task_id)

@@ -36,8 +36,21 @@ def create_access_token(user_id: uuid.UUID) -> str:
     return _create_token(user_id, timedelta(minutes=settings.access_token_expire_minutes), "access")
 
 
-def create_refresh_token(user_id: uuid.UUID) -> str:
-    return _create_token(user_id, timedelta(days=settings.refresh_token_expire_days), "refresh")
+def create_refresh_token(user_id: uuid.UUID) -> tuple[str, uuid.UUID, datetime]:
+    """Returns (token, jti, expires_at) — the jti/expiry are persisted separately
+    (see RefreshToken) so a token can be revoked before its natural expiry."""
+    jti = uuid.uuid4()
+    now = datetime.now(UTC)
+    expires_at = now + timedelta(days=settings.refresh_token_expire_days)
+    payload: dict[str, Any] = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "iat": now,
+        "exp": expires_at,
+        "jti": str(jti),
+    }
+    token = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
+    return token, jti, expires_at
 
 
 def decode_token(token: str) -> dict[str, Any]:

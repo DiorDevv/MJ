@@ -1,0 +1,19 @@
+# Production overlay — adds HTTPS termination on top of the base compose file.
+# Deploy with (note: no docker-compose.override.yml merge):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Before first run, put a real certificate at nginx/certs/fullchain.pem and
+# nginx/certs/privkey.pem (e.g. via certbot — see README) — nginx will not
+# start without them.
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - certbot_webroot:/var/www/certbot:ro
+
+volumes:
+  certbot_webroot:

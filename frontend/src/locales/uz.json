@@ -95,6 +95,8 @@
     "filterCompleted": "Bajarilgan",
     "filterSnoozed": "Kechiktirilgan",
     "snooze": "Keyinga qoldirish",
+    "skip": "Bu safar o'tkazib yuborish",
+    "skippedSuccess": "Vazifa o'tkazib yuborildi, keyingisi rejalashtirildi",
     "snooze15m": "15 daqiqaga",
     "snooze1h": "1 soatga",
     "snoozeTomorrow": "Ertaga",
@@ -145,7 +147,12 @@
     "telegramCodeExpired": "Kod muddati tugadi. Yangi kod so'rang.",
     "telegramLinkError": "Kod olishda xatolik yuz berdi",
     "telegramLinkSuccess": "Telegram bog'landi!",
-    "telegramNotYetLinked": "Hali bog'lanmagan. Botga kodni yuborganingizga ishonch hosil qiling."
+    "telegramNotYetLinked": "Hali bog'lanmagan. Botga kodni yuborganingizga ishonch hosil qiling.",
+    "categories": "Kategoriyalar",
+    "categoriesDescription": "Vazifalarni guruhlash uchun kategoriyalarni boshqaring.",
+    "noCategories": "Hali kategoriya yo'q",
+    "categoryUpdated": "Kategoriya yangilandi",
+    "categoryDeleted": "Kategoriya o'chirildi"
   },
   "errors": {
     "notFoundTitle": "Sahifa topilmadi",

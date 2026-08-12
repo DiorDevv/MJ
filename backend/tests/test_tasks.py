@@ -24,12 +24,14 @@ async def _create_task(
     due_time: str = "10:00:00",
     priority: str = "medium",
     category_id: str | None = None,
+    repeat_type: str = "none",
 ) -> dict[str, Any]:
     body: dict[str, Any] = {
         "title": title,
         "due_date": (due_date or date.today()).isoformat(),
         "due_time": due_time,
         "priority": priority,
+        "repeat_type": repeat_type,
     }
     if category_id is not None:
         body["category_id"] = category_id
@@ -290,3 +292,60 @@ async def test_sort_by_priority_desc(client: AsyncClient) -> None:
     )
     priorities = [t["priority"] for t in response.json()["items"]]
     assert priorities == ["high", "medium", "low"]
+
+
+# --- skip (recurring tasks only) ---
+
+
+async def test_skip_daily_task_advances_one_day(client: AsyncClient) -> None:
+    headers = await register_user(client, "skip_daily")
+    task = await _create_task(
+        client, headers, title="Kunlik mashq", due_date=date(2026, 3, 10), repeat_type="daily"
+    )
+
+    response = await client.post(f"/api/v1/tasks/{task['id']}/skip", headers=headers)
+    assert response.status_code == 200
+    skipped = response.json()
+    assert skipped["due_date"] == "2026-03-11"
+    assert skipped["status"] == "pending"
+    assert skipped["title"] == "Kunlik mashq"
+    assert skipped["id"] != task["id"]
+
+
+async def test_skip_removes_the_original_occurrence(client: AsyncClient) -> None:
+    headers = await register_user(client, "skip_gone")
+    task = await _create_task(client, headers, repeat_type="weekly")
+
+    await client.post(f"/api/v1/tasks/{task['id']}/skip", headers=headers)
+
+    get_response = await client.get(f"/api/v1/tasks/{task['id']}", headers=headers)
+    assert get_response.status_code == 404
+
+
+async def test_skip_does_not_count_as_completed(client: AsyncClient) -> None:
+    headers = await register_user(client, "skip_not_done")
+    task = await _create_task(client, headers, repeat_type="daily")
+
+    await client.post(f"/api/v1/tasks/{task['id']}/skip", headers=headers)
+
+    response = await client.get(
+        "/api/v1/tasks", params={"status": "completed"}, headers=headers
+    )
+    assert response.json()["items"] == []
+
+
+async def test_skip_non_recurring_task_rejected(client: AsyncClient) -> None:
+    headers = await register_user(client, "skip_oneoff")
+    task = await _create_task(client, headers, repeat_type="none")
+
+    response = await client.post(f"/api/v1/tasks/{task['id']}/skip", headers=headers)
+    assert response.status_code == 422
+
+
+async def test_skip_other_users_task_not_found(client: AsyncClient) -> None:
+    owner_headers = await register_user(client, "skip_owner")
+    other_headers = await register_user(client, "skip_intruder")
+    task = await _create_task(client, owner_headers, repeat_type="daily")
+
+    response = await client.post(f"/api/v1/tasks/{task['id']}/skip", headers=other_headers)
+    assert response.status_code == 404

@@ -1,6 +1,5 @@
-import calendar
 import logging
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select
@@ -12,25 +11,11 @@ from app.models.enums import RepeatType, TaskStatus
 from app.models.task import Task
 from app.models.user import User
 from app.services import notification_service
+from app.services.task_service import next_due_date as _next_due_date
 
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
-
-
-def _add_one_month(current: date) -> date:
-    year = current.year + current.month // 12
-    month = current.month % 12 + 1
-    day = min(current.day, calendar.monthrange(year, month)[1])
-    return date(year, month, day)
-
-
-def _next_due_date(current: date, repeat_type: RepeatType) -> date:
-    if repeat_type == RepeatType.DAILY:
-        return current + timedelta(days=1)
-    if repeat_type == RepeatType.WEEKLY:
-        return current + timedelta(days=7)
-    return _add_one_month(current)
 
 
 async def _revert_expired_snoozes(db: AsyncSession) -> None:
