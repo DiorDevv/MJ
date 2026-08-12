@@ -1,0 +1,4 @@
+# Shell scripts must keep LF line endings on every OS — a checkout with CRLF
+# (common on Windows without this file) breaks `#!/usr/bin/env bash` with a
+# "bad interpreter" error.
+*.sh text eol=lf
