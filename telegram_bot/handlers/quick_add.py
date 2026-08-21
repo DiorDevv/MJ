@@ -1,8 +1,9 @@
 import html
+import logging
 import re
 from datetime import date, timedelta
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -11,6 +12,9 @@ from app.db.session import AsyncSessionLocal
 from telegram_bot.db import get_linked_user
 from telegram_bot.keyboards.inline import PRIORITY_LABELS_UZ, confirm_keyboard
 from telegram_bot.states.task_states import TaskCreateStates
+from telegram_bot.stt import MAX_VOICE_SECONDS, TranscriptionUnavailableError, transcribe_voice
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -43,18 +47,7 @@ def _extract_date_time_title(text: str) -> tuple[date, str, str]:
     return due_date, due_time, title or text.strip()
 
 
-@router.message(StateFilter(None), F.text, ~F.text.startswith("/"))
-async def quick_add_task(message: Message, state: FSMContext) -> None:
-    raw_text = (message.text or "").strip()
-    if not raw_text:
-        return
-
-    async with AsyncSessionLocal() as db:
-        user = await get_linked_user(db, message.chat.id)
-    if user is None:
-        await message.answer(NOT_LINKED_MESSAGE)
-        return
-
+async def _quick_add_from_text(message: Message, state: FSMContext, raw_text: str) -> None:
     due_date, due_time, title = _extract_date_time_title(raw_text)
     if len(title) > 200:
         await message.answer("Sarlavha 200 belgidan oshmasligi kerak. Qaytadan yozing:")
@@ -80,3 +73,46 @@ async def quick_add_task(message: Message, state: FSMContext) -> None:
         "(Kategoriya/muhimlikni o'zgartirish uchun \"➕ Yangi vazifa\" tugmasidan foydalaning)"
     )
     await message.answer(summary, reply_markup=confirm_keyboard())
+
+
+@router.message(StateFilter(None), F.text, ~F.text.startswith("/"))
+async def quick_add_task(message: Message, state: FSMContext) -> None:
+    raw_text = (message.text or "").strip()
+    if not raw_text:
+        return
+
+    async with AsyncSessionLocal() as db:
+        user = await get_linked_user(db, message.chat.id)
+    if user is None:
+        await message.answer(NOT_LINKED_MESSAGE)
+        return
+
+    await _quick_add_from_text(message, state, raw_text)
+
+
+@router.message(StateFilter(None), F.voice)
+async def quick_add_voice(message: Message, state: FSMContext, bot: Bot) -> None:
+    assert message.voice is not None
+    if message.voice.duration > MAX_VOICE_SECONDS:
+        await message.answer(
+            f"Ovozli xabar juda uzun (max {MAX_VOICE_SECONDS} soniya). "
+            "Qisqaroq yuboring yoki matn bilan yozing."
+        )
+        return
+
+    async with AsyncSessionLocal() as db:
+        user = await get_linked_user(db, message.chat.id)
+    if user is None:
+        await message.answer(NOT_LINKED_MESSAGE)
+        return
+
+    await bot.send_chat_action(message.chat.id, "typing")
+    try:
+        raw_text = await transcribe_voice(bot, message.voice)
+    except TranscriptionUnavailableError:
+        logger.exception("Ovozli xabarni tanib bo'lmadi: chat_id=%s", message.chat.id)
+        await message.answer("🎙 Ovozli xabarni tanib bo'lmadi. Iltimos, matn bilan yozib ko'ring.")
+        return
+
+    await message.answer(f"🎙 Eshitdim: «{html.escape(raw_text)}»")
+    await _quick_add_from_text(message, state, raw_text)

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     vapid_claims_email: str = "mailto:admin@example.com"
 
     telegram_bot_token: str = ""
+    openai_api_key: str = ""
 
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000

@@ -18,6 +18,10 @@ barchasi bitta umumiy PostgreSQL bazasi bilan ishlaydi.
    - `TELEGRAM_BOT_TOKEN` — [@BotFather](https://t.me/BotFather) orqali olingan token
      (token yo'q bo'lsa ham qolgan tizim ishlayveradi — faqat `bot` xizmati qayta-qayta
      qulab tushib qayta ishga tushaveradi, bu normal holat)
+   - `OPENAI_API_KEY` — ixtiyoriy: botga ovozli xabar yuborib vazifa qo'shish uchun
+     ([platform.openai.com/api-keys](https://platform.openai.com/api-keys), Whisper API,
+     ~$0.006/daqiqa). Bo'sh qoldirilsa, bot ovozli xabarlarga "matn bilan yozing"
+     deb javob beradi — boshqa hech narsaga ta'sir qilmaydi.
 
 2. Barcha xizmatlarni ishga tushiring:
 
