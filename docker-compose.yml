@@ -43,17 +43,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # No target here => builds the last stage in frontend/Dockerfile
+      # ("production": a static build served by nginx). Vite bakes
+      # VITE_API_URL into the bundle at this build step, so it must be passed
+      # as a build arg — a runtime env var would be too late to have any effect.
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     container_name: mj_frontend
     restart: unless-stopped
-    env_file:
-      - .env
     depends_on:
       - backend
     # No host port mapping: reached only via the nginx reverse proxy. For
-    # local direct access to the Vite dev server, see docker-compose.override.yml.
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    # local direct access to the Vite dev server, see docker-compose.override.yml
+    # (which also switches build.target back to "dev").
     networks:
       - mj_network
 

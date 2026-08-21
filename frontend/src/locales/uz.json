@@ -80,6 +80,7 @@
     "priority_high": "Yuqori",
     "overdueSection": "Muddati o'tgan",
     "todaySection": "Bugungi vazifalar",
+    "todayProgress": "{{done}}/{{total}} bajarildi",
     "todayEmptyTitle": "Bugun vazifa yo'q, dam oling! 🎉",
     "todayEmptyBody": "Yangi vazifa qo'shish uchun \"Yangi vazifa\" tugmasini bosing.",
     "weekEmptyTitle": "Bu hafta uchun vazifalar yo'q",

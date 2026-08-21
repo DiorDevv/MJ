@@ -21,9 +21,17 @@ interface TaskCardProps {
   selectable?: boolean
   selected?: boolean
   onToggleSelect?: (id: string) => void
+  isOverdue?: boolean
 }
 
-export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onEdit,
+  selectable,
+  selected,
+  onToggleSelect,
+  isOverdue,
+}: TaskCardProps) {
   const { t } = useTranslation()
   const completeMutation = useCompleteTask()
   const reopenMutation = useReopenTask()
@@ -60,8 +68,11 @@ export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }:
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
       className={cn(
-        'group flex items-start gap-3 rounded-xl border border-l-4 border-border bg-surface p-4 shadow-sm transition-shadow hover:shadow-md',
+        'group flex items-start gap-3 rounded-xl border border-l-4 border-border bg-surface p-4',
+        'shadow-sm transition-[box-shadow,background-color] duration-150 hover:bg-surface-hover hover:shadow-md',
         PRIORITY_BORDER_CLASS[task.priority],
         task.status === 'snoozed' && 'opacity-70',
       )}
@@ -92,7 +103,12 @@ export function TaskCard({ task, onEdit, selectable, selected, onToggleSelect }:
           <p className="mt-0.5 truncate text-sm text-muted">{task.description}</p>
         )}
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span className="inline-flex items-center gap-1">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1',
+              isOverdue && !isCompleted && 'font-semibold text-red-500',
+            )}
+          >
             <Clock className="size-3.5" aria-hidden="true" />
             {task.due_time.slice(0, 5)}
           </span>

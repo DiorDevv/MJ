@@ -24,13 +24,15 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             className={cn(
               'peer size-4 shrink-0 appearance-none rounded border border-border bg-surface',
               'checked:border-primary-600 checked:bg-primary-600',
+              'transition-colors duration-150',
+              'hover:border-primary-400',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600',
               className,
             )}
             {...props}
           />
           <Check
-            className="pointer-events-none absolute inset-0 size-4 scale-0 text-white peer-checked:scale-100"
+            className="pointer-events-none absolute inset-0 size-4 scale-0 text-white transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] peer-checked:scale-100"
             aria-hidden="true"
           />
         </span>

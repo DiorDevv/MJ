@@ -80,6 +80,7 @@
     "priority_high": "High",
     "overdueSection": "Overdue",
     "todaySection": "Today's tasks",
+    "todayProgress": "{{done}}/{{total}} done",
     "todayEmptyTitle": "No tasks today, enjoy your day! 🎉",
     "todayEmptyBody": "Click \"New task\" to add one.",
     "weekEmptyTitle": "No tasks this week",

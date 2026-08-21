@@ -60,6 +60,16 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 `docker-compose.prod.yml` nginx'ga HTTPS (443-port, TLS) qo'shadi — sertifikatni oldindan
 `nginx/certs/`ga qo'yish kerak (qanday olish haqida `nginx/certs/README.md`ga qarang).
 
+**Muhim:** `frontend`ning production build'i `VITE_API_URL`ni build vaqtida ichiga
+"quyib qo'yadi" (Vite'ning ishlash tamoyili shunday — runtime env o'zgaruvchisi kech
+qoladi). Haqiqiy domenga chiqarishdan oldin `.env`dagi `VITE_API_URL`ni
+`https://sizning-domeningiz.com/api` ga o'zgartiring, keyin qayta build qiling.
+
+`frontend/Dockerfile` ikki bosqichli: `dev` (Vite dev-server, faqat
+`docker-compose.override.yml` orqali) va `production` (standart — `npm run build` bilan
+tayyorlangan statik fayllar, o'zining yengil nginx'i orqali xizmat qiladi — Node.js
+yakuniy image'da umuman yo'q).
+
 ## Zaxira nusxa
 
 ```bash
@@ -76,6 +86,8 @@ muntazam (masalan kunlik cron orqali) ishga tushirish tavsiya etiladi.
 MJ/
 ├── backend/                  FastAPI + SQLAlchemy 2.0 (async) + Alembic + APScheduler
 ├── frontend/                 React 19 + TypeScript + Tailwind CSS + TanStack Query
+│   ├── Dockerfile              2 bosqich: dev (Vite) / production (statik + nginx)
+│   └── nginx.static.conf       Production bosqichi ichidagi statik-fayl serveri konfiguratsiyasi
 ├── telegram_bot/             aiogram 3.x — backend/app modellari va servislarini
 │                              Docker build vaqtida o'zgarishsiz qayta ishlatadi (kod takrorlanmaydi)
 ├── nginx/                    Reverse proxy: /api/* → backend, / → frontend

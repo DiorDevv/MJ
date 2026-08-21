@@ -1,13 +1,15 @@
 # Local development overrides. `docker compose up` auto-merges this file with
 # docker-compose.yml whenever both sit in the same directory, so nothing extra
 # is needed for local work — it just re-exposes internal services on the host
-# for convenience (curl/psql/direct Vite access).
+# for convenience (curl/psql/direct Vite access), and switches the frontend
+# from its production static build back to a hot-reloading dev server.
 #
 # Production deployments must NOT merge this file: run
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # (explicit -f flags disable the automatic override.yml merge), so postgres,
 # the backend, and the Vite dev server stay off the public network — only
-# nginx should be reachable from outside.
+# nginx should be reachable from outside, and the frontend serves as a
+# prebuilt static bundle instead of running `npm run dev`.
 services:
   postgres:
     ports:
@@ -18,5 +20,10 @@ services:
       - "8001:8000"
 
   frontend:
+    build:
+      target: dev
     ports:
       - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules

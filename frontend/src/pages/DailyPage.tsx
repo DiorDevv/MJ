@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
+import { CircleCheckBig, Plus } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
+import { format } from 'date-fns'
+import { enUS, uz } from 'date-fns/locale'
 import { useTasks } from '../hooks/useTasks'
 import { TaskCard } from '../components/tasks/TaskCard'
 import { TaskModal } from '../components/tasks/TaskModal'
@@ -11,7 +13,7 @@ import { Button, Skeleton } from '../components/ui'
 import type { Task } from '../types/task'
 
 export function DailyPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const overdueQuery = useTasks({ filter: 'overdue', sort_by: 'due_date', sort_order: 'asc' })
   const todayQuery = useTasks({ filter: 'today', sort_by: 'due_date', sort_order: 'asc' })
   const [modalTask, setModalTask] = useState<Task | null | undefined>(undefined)
@@ -21,10 +23,24 @@ export function DailyPage() {
   const todayTasks = todayQuery.data?.items ?? []
   const isEmpty = !isLoading && overdueTasks.length === 0 && todayTasks.length === 0
 
+  const locale = i18n.language.startsWith('en') ? enUS : uz
+  const todayDone = todayTasks.filter((task) => task.status === 'completed').length
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">{t('nav.today')}</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t('nav.today')}</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            {format(new Date(), 'd-MMMM, EEEE', { locale })}
+            {todayTasks.length > 0 && (
+              <span>
+                {' · '}
+                {t('tasks.todayProgress', { done: todayDone, total: todayTasks.length })}
+              </span>
+            )}
+          </p>
+        </div>
         <Button
           onClick={() => setModalTask(null)}
           leftIcon={<Plus className="size-4" aria-hidden="true" />}
@@ -44,7 +60,11 @@ export function DailyPage() {
       )}
 
       {isEmpty && (
-        <EmptyState title={t('tasks.todayEmptyTitle')} body={t('tasks.todayEmptyBody')} />
+        <EmptyState
+          title={t('tasks.todayEmptyTitle')}
+          body={t('tasks.todayEmptyBody')}
+          icon={CircleCheckBig}
+        />
       )}
 
       {overdueTasks.length > 0 && (
@@ -54,7 +74,7 @@ export function DailyPage() {
           </h2>
           <AnimatePresence initial={false}>
             {overdueTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onEdit={setModalTask} />
+              <TaskCard key={task.id} task={task} onEdit={setModalTask} isOverdue />
             ))}
           </AnimatePresence>
         </section>
