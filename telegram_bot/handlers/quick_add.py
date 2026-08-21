@@ -92,8 +92,10 @@ async def quick_add_task(message: Message, state: FSMContext) -> None:
 
 @router.message(StateFilter(None), F.voice)
 async def quick_add_voice(message: Message, state: FSMContext, bot: Bot) -> None:
-    assert message.voice is not None
-    if message.voice.duration > MAX_VOICE_SECONDS:
+    voice = message.voice
+    if voice is None:
+        return
+    if voice.duration > MAX_VOICE_SECONDS:
         await message.answer(
             f"Ovozli xabar juda uzun (max {MAX_VOICE_SECONDS} soniya). "
             "Qisqaroq yuboring yoki matn bilan yozing."
@@ -108,7 +110,7 @@ async def quick_add_voice(message: Message, state: FSMContext, bot: Bot) -> None
 
     await bot.send_chat_action(message.chat.id, "typing")
     try:
-        raw_text = await transcribe_voice(bot, message.voice)
+        raw_text = await transcribe_voice(bot, voice)
     except TranscriptionUnavailableError:
         logger.exception("Ovozli xabarni tanib bo'lmadi: chat_id=%s", message.chat.id)
         await message.answer("🎙 Ovozli xabarni tanib bo'lmadi. Iltimos, matn bilan yozib ko'ring.")
