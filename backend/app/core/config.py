@@ -22,7 +22,13 @@ class Settings(BaseSettings):
     vapid_claims_email: str = "mailto:admin@example.com"
 
     telegram_bot_token: str = ""
-    openai_api_key: str = ""
+
+    # Any OpenAI-compatible /v1/audio/transcriptions backend — the hosted OpenAI
+    # API by default, or a self-hosted server (e.g. speaches, see docker-compose.yml)
+    # by pointing stt_base_url at it and leaving stt_api_key blank.
+    stt_base_url: str = "https://api.openai.com/v1/audio/transcriptions"
+    stt_api_key: str = ""
+    stt_model: str = "whisper-1"
 
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000

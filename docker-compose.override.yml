@@ -27,3 +27,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
+  speaches:
+    ports:
+      - "9000:8000"

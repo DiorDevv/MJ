@@ -74,9 +74,31 @@ services:
         condition: service_healthy
       backend:
         condition: service_started
+      speaches:
+        condition: service_started
     volumes:
       - ./telegram_bot:/app/telegram_bot
       - ./shared:/app/shared
+    networks:
+      - mj_network
+
+  # Self-hosted speech-to-text for the bot's voice-message quick-add (see
+  # telegram_bot/stt.py) — an OpenAI-compatible faster-whisper server, so no
+  # per-request API cost and no audio leaving this stack. Free but CPU-bound:
+  # expect several seconds per voice note with no GPU. This is a local test
+  # instance; moving STT to a dedicated server later just means pointing
+  # STT_BASE_URL (.env) at that server's own /v1/audio/transcriptions.
+  speaches:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: mj_speaches
+    restart: unless-stopped
+    environment:
+      WHISPER__INFERENCE_DEVICE: cpu
+      WHISPER__COMPUTE_TYPE: int8
+    volumes:
+      # Hugging Face model cache — without this, every container recreate
+      # re-downloads the model (~500MB for the "small" model) from scratch.
+      - speaches_models:/home/ubuntu/.cache/huggingface/hub
     networks:
       - mj_network
 
@@ -100,3 +122,4 @@ networks:
 
 volumes:
   postgres_data:
+  speaches_models:

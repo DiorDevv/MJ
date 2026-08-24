@@ -18,10 +18,12 @@ barchasi bitta umumiy PostgreSQL bazasi bilan ishlaydi.
    - `TELEGRAM_BOT_TOKEN` — [@BotFather](https://t.me/BotFather) orqali olingan token
      (token yo'q bo'lsa ham qolgan tizim ishlayveradi — faqat `bot` xizmati qayta-qayta
      qulab tushib qayta ishga tushaveradi, bu normal holat)
-   - `OPENAI_API_KEY` — ixtiyoriy: botga ovozli xabar yuborib vazifa qo'shish uchun
-     ([platform.openai.com/api-keys](https://platform.openai.com/api-keys), Whisper API,
-     ~$0.006/daqiqa). Bo'sh qoldirilsa, bot ovozli xabarlarga "matn bilan yozing"
-     deb javob beradi — boshqa hech narsaga ta'sir qilmaydi.
+   - `STT_BASE_URL` / `STT_API_KEY` / `STT_MODEL` — ixtiyoriy: botga ovozli xabar
+     yuborib vazifa qo'shish uchun. Standart holatda `docker-compose.yml`dagi
+     `speaches` xizmatiga (o'z serverida ishlaydigan, bepul faster-whisper) ishora
+     qiladi — hech narsa o'zgartirish shart emas. OpenAI Whisper API'ga o'tish
+     uchun `.env.example`dagi izohga qarang. Ovozli xabar aniqlanmasa, bot
+     "matn bilan yozing" deb javob beradi — boshqa hech narsaga ta'sir qilmaydi.
 
 2. Barcha xizmatlarni ishga tushiring:
 
@@ -94,6 +96,8 @@ MJ/
 │   └── nginx.static.conf       Production bosqichi ichidagi statik-fayl serveri konfiguratsiyasi
 ├── telegram_bot/             aiogram 3.x — backend/app modellari va servislarini
 │                              Docker build vaqtida o'zgarishsiz qayta ishlatadi (kod takrorlanmaydi)
+├── speaches                  (docker-compose xizmati, alohida papka emas) — bot uchun
+│                              o'z serverida ishlaydigan bepul ovoz→matn (faster-whisper)
 ├── nginx/                    Reverse proxy: /api/* → backend, / → frontend
 │   ├── nginx.conf             Standart (HTTP, dev)
 │   └── nginx.prod.conf        HTTPS variant (docker-compose.prod.yml bilan)
