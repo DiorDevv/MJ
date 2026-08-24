@@ -1,3 +1,5 @@
+import uuid
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.models.category import Category
 from app.models.enums import Priority
@@ -24,6 +26,14 @@ def priority_keyboard() -> InlineKeyboardMarkup:
         for value, label in PRIORITY_LABELS_UZ.items()
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def undo_keyboard(task_id: uuid.UUID) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="↩️ Bekor qilish", callback_data=f"undo_add:{task_id}")]
+        ]
+    )
 
 
 def confirm_keyboard() -> InlineKeyboardMarkup:

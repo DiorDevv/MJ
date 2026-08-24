@@ -1,17 +1,19 @@
 import html
 import logging
 import re
-from datetime import date, timedelta
+import uuid
+from datetime import date, time, timedelta
 
 from aiogram import Bot, F, Router
 from aiogram.filters import StateFilter
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 from app.db.session import AsyncSessionLocal
+from app.exceptions import TaskNotFoundError
+from app.schemas.task import TaskCreate
+from app.services import task_service
 
 from telegram_bot.db import get_linked_user
-from telegram_bot.keyboards.inline import PRIORITY_LABELS_UZ, confirm_keyboard
-from telegram_bot.states.task_states import TaskCreateStates
+from telegram_bot.keyboards.inline import undo_keyboard
 from telegram_bot.stt import MAX_VOICE_SECONDS, TranscriptionUnavailableError, transcribe_voice
 
 logger = logging.getLogger(__name__)
@@ -47,36 +49,33 @@ def _extract_date_time_title(text: str) -> tuple[date, str, str]:
     return due_date, due_time, title or text.strip()
 
 
-async def _quick_add_from_text(message: Message, state: FSMContext, raw_text: str) -> None:
+async def _quick_add_from_text(message: Message, user_id: uuid.UUID, raw_text: str) -> None:
+    """Creates the task immediately (no confirm step) and offers a one-tap undo —
+    a review-before-commit step made sense when quick-add fed into the multi-field
+    guided flow's shared confirm screen, but for a single parsed line it's one more
+    round-trip than the mistake rate justifies. Category/priority stay at their
+    defaults here; use "➕ Yangi vazifa" for those."""
     due_date, due_time, title = _extract_date_time_title(raw_text)
     if len(title) > 200:
         await message.answer("Sarlavha 200 belgidan oshmasligi kerak. Qaytadan yozing:")
         return
 
-    await state.update_data(
-        title=title,
-        due_date=due_date.isoformat(),
-        due_time=due_time,
-        category_id=None,
-        priority="medium",
-    )
-    await state.set_state(TaskCreateStates.confirm)
+    task_in = TaskCreate(title=title, due_date=due_date, due_time=time.fromisoformat(due_time))
+    async with AsyncSessionLocal() as db:
+        task = await task_service.create_task(db, user_id, task_in)
 
     date_label = "bugun" if due_date == date.today() else due_date.strftime("%d.%m.%Y")
     summary = (
-        "<b>Yangi vazifa:</b>\n\n"
+        "✅ <b>Vazifa qo'shildi:</b>\n\n"
         f"📝 {html.escape(title)}\n"
         f"📅 {date_label}\n"
-        f"🕐 {due_time[:5]}\n"
-        f"{PRIORITY_LABELS_UZ['medium']}\n\n"
-        "Tasdiqlaysizmi?\n"
-        "(Kategoriya/muhimlikni o'zgartirish uchun \"➕ Yangi vazifa\" tugmasidan foydalaning)"
+        f"🕐 {due_time[:5]}"
     )
-    await message.answer(summary, reply_markup=confirm_keyboard())
+    await message.answer(summary, reply_markup=undo_keyboard(task.id))
 
 
 @router.message(StateFilter(None), F.text, ~F.text.startswith("/"))
-async def quick_add_task(message: Message, state: FSMContext) -> None:
+async def quick_add_task(message: Message) -> None:
     raw_text = (message.text or "").strip()
     if not raw_text:
         return
@@ -87,11 +86,11 @@ async def quick_add_task(message: Message, state: FSMContext) -> None:
         await message.answer(NOT_LINKED_MESSAGE)
         return
 
-    await _quick_add_from_text(message, state, raw_text)
+    await _quick_add_from_text(message, user.id, raw_text)
 
 
 @router.message(StateFilter(None), F.voice)
-async def quick_add_voice(message: Message, state: FSMContext, bot: Bot) -> None:
+async def quick_add_voice(message: Message, bot: Bot) -> None:
     voice = message.voice
     if voice is None:
         return
@@ -117,4 +116,26 @@ async def quick_add_voice(message: Message, state: FSMContext, bot: Bot) -> None
         return
 
     await message.answer(f"🎙 Eshitdim: «{html.escape(raw_text)}»")
-    await _quick_add_from_text(message, state, raw_text)
+    await _quick_add_from_text(message, user.id, raw_text)
+
+
+@router.callback_query(F.data.startswith("undo_add:"))
+async def undo_quick_add(callback: CallbackQuery) -> None:
+    if not isinstance(callback.data, str):
+        return
+    task_id = callback.data.split(":", 1)[1]
+
+    async with AsyncSessionLocal() as db:
+        user = await get_linked_user(db, callback.from_user.id)
+        if user is None:
+            await callback.answer("Hisobingiz bog'lanmagan.", show_alert=True)
+            return
+        try:
+            await task_service.delete_task(db, user.id, uuid.UUID(task_id))
+        except (TaskNotFoundError, ValueError):
+            await callback.answer("Vazifa allaqachon o'chirilgan yoki topilmadi.", show_alert=True)
+            return
+
+    await callback.answer("↩️ Bekor qilindi.")
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text("❌ Vazifa bekor qilindi.")
