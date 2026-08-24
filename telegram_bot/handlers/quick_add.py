@@ -9,11 +9,13 @@ from aiogram.filters import StateFilter
 from aiogram.types import CallbackQuery, Message
 from app.db.session import AsyncSessionLocal
 from app.exceptions import TaskNotFoundError
+from app.models.category import Category
+from app.models.enums import Priority
 from app.schemas.task import TaskCreate
-from app.services import task_service
+from app.services import category_service, task_service
 
 from telegram_bot.db import get_linked_user
-from telegram_bot.keyboards.inline import undo_keyboard
+from telegram_bot.keyboards.inline import PRIORITY_LABELS_UZ, undo_keyboard
 from telegram_bot.stt import MAX_VOICE_SECONDS, TranscriptionUnavailableError, transcribe_voice
 
 logger = logging.getLogger(__name__)
@@ -26,11 +28,55 @@ _TIME_PATTERN = re.compile(r"\b([01]?\d|2[0-3]):([0-5]\d)\b")
 _TOMORROW_PATTERN = re.compile(r"(?i)\bertaga\b")
 _TODAY_PATTERN = re.compile(r"(?i)\bbugun\b")
 
+# One shared date/time/priority/category applies to the whole message; only the
+# remaining text is split into separate task titles. A per-segment "ertaga 14:00
+# sut olish, 18:00 non olish" syntax would be more flexible but far more prone to
+# silent misparsing — a shared list ("ertaga 18:00 sut olish, non olish") matches
+# how people actually dictate or type a list.
+_SEGMENT_SPLIT_PATTERN = re.compile(r"[\n,]+")
 
-def _extract_date_time_title(text: str) -> tuple[date, str, str]:
-    """Pulls an optional 'bugun'/'ertaga' + HH:MM out of free text, defaulting
-    to today at 09:00 when absent, and returns the remaining title text."""
-    remaining = text
+_PRIORITY_KEYWORDS: dict[str, Priority] = {
+    "past": Priority.LOW,
+    "yuqori": Priority.HIGH,
+    "muhim": Priority.HIGH,
+    "shoshilinch": Priority.HIGH,
+    "orta": Priority.MEDIUM,
+    "o'rta": Priority.MEDIUM,
+}
+_PRIORITY_PATTERN = re.compile(
+    r"(?i)!(" + "|".join(re.escape(word) for word in _PRIORITY_KEYWORDS) + r")\b"
+)
+_CATEGORY_TAG_PATTERN = re.compile(r"#(\S+)")
+
+MAX_TITLE_LENGTH = 200
+
+
+def _clean_title(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip(" ,.-")
+
+
+class ParsedQuickAdd:
+    def __init__(
+        self,
+        due_date: date,
+        due_time: str,
+        priority: Priority,
+        category: Category | None,
+        titles: list[str],
+    ) -> None:
+        self.due_date = due_date
+        self.due_time = due_time
+        self.priority = priority
+        self.category = category
+        self.titles = titles
+
+
+def _parse_quick_add(raw_text: str, categories: list[Category]) -> ParsedQuickAdd:
+    """Extracts an optional 'bugun'/'ertaga' + HH:MM + '!priority' + '#category'
+    shared across the whole message, then splits whatever's left into one title
+    per line/comma-separated item — so "ertaga 18:00 !muhim #uy sut olish, non
+    olish" becomes two high-priority tasks tomorrow at 18:00 tagged #uy."""
+    remaining = raw_text
     due_date = date.today()
 
     if _TOMORROW_PATTERN.search(remaining):
@@ -45,33 +91,77 @@ def _extract_date_time_title(text: str) -> tuple[date, str, str]:
         due_time = f"{time_match.group(0)}:00"
         remaining = remaining.replace(time_match.group(0), "")
 
-    title = re.sub(r"\s+", " ", remaining).strip(" ,.-")
-    return due_date, due_time, title or text.strip()
+    priority = Priority.MEDIUM
+    priority_match = _PRIORITY_PATTERN.search(remaining)
+    if priority_match:
+        priority = _PRIORITY_KEYWORDS[priority_match.group(1).lower()]
+        remaining = remaining.replace(priority_match.group(0), "")
+
+    category: Category | None = None
+    category_match = _CATEGORY_TAG_PATTERN.search(remaining)
+    if category_match:
+        tag = category_match.group(1).lower()
+        category = next((c for c in categories if c.name.lower() == tag), None)
+        if category is not None:
+            remaining = remaining.replace(category_match.group(0), "")
+
+    titles = [_clean_title(segment) for segment in _SEGMENT_SPLIT_PATTERN.split(remaining)]
+    titles = [title for title in titles if title]
+    if not titles:
+        titles = [raw_text.strip()]
+
+    return ParsedQuickAdd(due_date, due_time, priority, category, titles)
 
 
 async def _quick_add_from_text(message: Message, user_id: uuid.UUID, raw_text: str) -> None:
-    """Creates the task immediately (no confirm step) and offers a one-tap undo —
-    a review-before-commit step made sense when quick-add fed into the multi-field
-    guided flow's shared confirm screen, but for a single parsed line it's one more
-    round-trip than the mistake rate justifies. Category/priority stay at their
-    defaults here; use "➕ Yangi vazifa" for those."""
-    due_date, due_time, title = _extract_date_time_title(raw_text)
-    if len(title) > 200:
-        await message.answer("Sarlavha 200 belgidan oshmasligi kerak. Qaytadan yozing:")
-        return
-
-    task_in = TaskCreate(title=title, due_date=due_date, due_time=time.fromisoformat(due_time))
+    """Creates the task(s) immediately (no confirm step) — a review-before-commit
+    step made sense when quick-add fed into the multi-field guided flow's shared
+    confirm screen, but is one extra round-trip per message than the mistake rate
+    justifies. A single created task gets an undo button; a batch doesn't (no way
+    to fit N task ids in Telegram's 64-byte callback_data), so batch mistakes are
+    cleaned up from the list view instead."""
     async with AsyncSessionLocal() as db:
-        task = await task_service.create_task(db, user_id, task_in)
+        categories = await category_service.list_categories(db, user_id)
+        parsed = _parse_quick_add(raw_text, categories)
 
-    date_label = "bugun" if due_date == date.today() else due_date.strftime("%d.%m.%Y")
-    summary = (
-        "✅ <b>Vazifa qo'shildi:</b>\n\n"
-        f"📝 {html.escape(title)}\n"
-        f"📅 {date_label}\n"
-        f"🕐 {due_time[:5]}"
-    )
-    await message.answer(summary, reply_markup=undo_keyboard(task.id))
+        valid_titles = [t for t in parsed.titles if len(t) <= MAX_TITLE_LENGTH]
+        skipped = len(parsed.titles) - len(valid_titles)
+        if not valid_titles:
+            await message.answer("Sarlavha 200 belgidan oshmasligi kerak. Qaytadan yozing:")
+            return
+
+        created = []
+        for title in valid_titles:
+            task_in = TaskCreate(
+                title=title,
+                due_date=parsed.due_date,
+                due_time=time.fromisoformat(parsed.due_time),
+                priority=parsed.priority,
+                category_id=parsed.category.id if parsed.category else None,
+            )
+            created.append(await task_service.create_task(db, user_id, task_in))
+
+    is_today = parsed.due_date == date.today()
+    date_label = "bugun" if is_today else parsed.due_date.strftime("%d.%m.%Y")
+    context_lines = [f"📅 {date_label}", f"🕐 {parsed.due_time[:5]}"]
+    if parsed.priority != Priority.MEDIUM:
+        context_lines.append(PRIORITY_LABELS_UZ[parsed.priority.value])
+    if parsed.category is not None:
+        context_lines.append(f"🏷 {html.escape(parsed.category.name)}")
+
+    context = "\n".join(context_lines)
+    if len(created) == 1:
+        summary = f"✅ <b>Vazifa qo'shildi:</b>\n\n📝 {html.escape(created[0].title)}\n{context}"
+        await message.answer(summary, reply_markup=undo_keyboard(created[0].id))
+    else:
+        lines = "\n".join(f"• {html.escape(task.title)}" for task in created)
+        summary = f"✅ <b>{len(created)} ta vazifa qo'shildi:</b>\n\n{lines}\n\n{context}"
+        await message.answer(summary)
+
+    if skipped:
+        await message.answer(
+            f"⚠️ {skipped} ta qator 200 belgidan uzun bo'lgani uchun o'tkazib yuborildi."
+        )
 
 
 @router.message(StateFilter(None), F.text, ~F.text.startswith("/"))
