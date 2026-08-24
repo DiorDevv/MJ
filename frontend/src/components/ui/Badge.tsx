@@ -11,10 +11,10 @@ interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: 'bg-surface-hover text-foreground',
-  primary: 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200',
-  success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200',
-  warning: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200',
-  danger: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
+  primary: 'bg-accent-subtle text-accent',
+  success: 'bg-success-subtle text-success',
+  warning: 'bg-warning-subtle text-warning',
+  danger: 'bg-danger-subtle text-danger',
 }
 
 export function Badge({ children, variant = 'default', className }: BadgeProps) {

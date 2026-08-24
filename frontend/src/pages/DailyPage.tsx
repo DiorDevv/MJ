@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheckBig, Plus } from 'lucide-react'
-import { AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { enUS, uz } from 'date-fns/locale'
 import { useTasks } from '../hooks/useTasks'
-import { TaskCard } from '../components/tasks/TaskCard'
+import { TaskTable } from '../components/tasks/TaskTable'
+import { TaskTableSkeleton } from '../components/tasks/TaskTableSkeleton'
+import { StatsStrip } from '../components/tasks/StatsStrip'
 import { TaskModal } from '../components/tasks/TaskModal'
 import { QuickAddTask } from '../components/tasks/QuickAddTask'
 import { EmptyState } from '../components/tasks/EmptyState'
-import { Button, Skeleton } from '../components/ui'
+import { Button } from '../components/ui'
 import type { Task } from '../types/task'
 
 export function DailyPage() {
@@ -25,6 +26,8 @@ export function DailyPage() {
 
   const locale = i18n.language.startsWith('en') ? enUS : uz
   const todayDone = todayTasks.filter((task) => task.status === 'completed').length
+  const completionRate =
+    todayTasks.length > 0 ? Math.round((todayDone / todayTasks.length) * 100) : 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,15 +52,17 @@ export function DailyPage() {
         </Button>
       </div>
 
+      {!isLoading && (
+        <StatsStrip
+          dueToday={todayTasks.length}
+          overdue={overdueTasks.length}
+          completionRate={completionRate}
+        />
+      )}
+
       <QuickAddTask />
 
-      {isLoading && (
-        <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((key) => (
-            <Skeleton key={key} className="h-20 w-full" />
-          ))}
-        </div>
-      )}
+      {isLoading && <TaskTableSkeleton rows={5} />}
 
       {isEmpty && (
         <EmptyState
@@ -69,14 +74,10 @@ export function DailyPage() {
 
       {overdueTasks.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold tracking-wide text-red-600 uppercase">
+          <h2 className="text-sm font-semibold tracking-wide text-danger uppercase">
             {t('tasks.overdueSection')}
           </h2>
-          <AnimatePresence initial={false}>
-            {overdueTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onEdit={setModalTask} isOverdue />
-            ))}
-          </AnimatePresence>
+          <TaskTable tasks={overdueTasks} onEdit={setModalTask} />
         </section>
       )}
 
@@ -87,11 +88,7 @@ export function DailyPage() {
               {t('tasks.todaySection')}
             </h2>
           )}
-          <AnimatePresence initial={false}>
-            {todayTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onEdit={setModalTask} />
-            ))}
-          </AnimatePresence>
+          <TaskTable tasks={todayTasks} onEdit={setModalTask} />
         </section>
       )}
 

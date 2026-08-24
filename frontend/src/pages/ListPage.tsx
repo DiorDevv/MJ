@@ -1,18 +1,19 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence } from 'framer-motion'
 import { ArrowDown, ArrowUp, Plus } from 'lucide-react'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useTasks, TASKS_QUERY_KEY } from '../hooks/useTasks'
 import { useCategories } from '../hooks/useCategories'
 import { useUndoableDelete } from '../hooks/useTaskMutations'
 import { completeTask } from '../api/tasks'
-import { TaskCard } from '../components/tasks/TaskCard'
+import { TaskTable } from '../components/tasks/TaskTable'
+import { TaskTableSkeleton } from '../components/tasks/TaskTableSkeleton'
 import { TaskModal } from '../components/tasks/TaskModal'
 import { QuickAddTask } from '../components/tasks/QuickAddTask'
 import { EmptyState } from '../components/tasks/EmptyState'
-import { Button, Dropdown, Input, Skeleton } from '../components/ui'
+import { Button, Dropdown, Input } from '../components/ui'
 import type { DropdownOption } from '../components/ui'
 import type { Priority, Task } from '../types/task'
 import { showSuccessToast, showUndoToast } from '../utils/toast'
@@ -25,7 +26,11 @@ type SortBy = 'due_date' | 'priority' | 'created_at'
 
 export function ListPage() {
   const { t } = useTranslation()
-  const [search, setSearch] = useState('')
+  const [searchParams] = useSearchParams()
+  // Seeded once from ?search= (set by the top bar's global search box) — the
+  // URL isn't kept in sync after that, this page's own search input owns it
+  // from here on, same as every other filter here.
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const debouncedSearch = useDebouncedValue(search, 300)
   const [status, setStatus] = useState<StatusFilter>('')
   const [priority, setPriority] = useState<PriorityFilter>('')
@@ -113,7 +118,7 @@ export function ListPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
         <Input
           placeholder={t('tasks.searchPlaceholder')}
           value={search}
@@ -189,7 +194,7 @@ export function ListPage() {
       <QuickAddTask categoryId={categoryId || undefined} priority={priority || undefined} />
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between rounded-xl border border-primary-600 bg-primary-50 px-4 py-2.5 dark:bg-primary-950/30">
+        <div className="flex items-center justify-between rounded-lg border border-accent/30 bg-accent-subtle px-4 py-2.5">
           <span className="text-sm font-medium text-foreground">
             {t('tasks.selectedCount', { count: selectedIds.size })}
           </span>
@@ -207,30 +212,21 @@ export function ListPage() {
         </div>
       )}
 
-      {isLoading && (
-        <div className="flex flex-col gap-3">
-          {[1, 2, 3, 4].map((key) => (
-            <Skeleton key={key} className="h-20 w-full" />
-          ))}
-        </div>
-      )}
+      {isLoading && <TaskTableSkeleton rows={6} />}
 
       {!isLoading && tasks.length === 0 && (
         <EmptyState title={t('tasks.listEmptyTitle')} body={t('tasks.listEmptyBody')} />
       )}
 
-      <AnimatePresence initial={false}>
-        {tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onEdit={setModalTask}
-            selectable
-            selected={selectedIds.has(task.id)}
-            onToggleSelect={toggleSelect}
-          />
-        ))}
-      </AnimatePresence>
+      {!isLoading && tasks.length > 0 && (
+        <TaskTable
+          tasks={tasks}
+          onEdit={setModalTask}
+          selectable
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+        />
+      )}
 
       {total > PAGE_SIZE && (
         <div className="flex items-center justify-between text-sm text-muted">

@@ -65,7 +65,7 @@ export function WeeklyPage() {
               <div
                 key={key}
                 className={cn(
-                  'flex flex-col gap-2 rounded-xl border border-border bg-surface p-3',
+                  'flex flex-col gap-2 rounded-lg border border-border bg-surface p-3',
                   isToday(day) && 'ring-2 ring-primary-500',
                 )}
               >

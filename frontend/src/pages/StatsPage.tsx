@@ -6,8 +6,11 @@ import { Dropdown, Skeleton } from '../components/ui'
 import type { DropdownOption } from '../components/ui'
 import type { StatsPeriod } from '../api/stats'
 
-const COMPLETED_COLOR = '#10b981'
-const PENDING_COLOR = '#94a3b8'
+// recharts needs real color values (not Tailwind classes) — reading the design
+// tokens as CSS custom properties keeps this in sync with index.css instead of
+// duplicating the palette here.
+const COMPLETED_COLOR = 'var(--color-success)'
+const PENDING_COLOR = 'var(--color-muted)'
 
 export function StatsPage() {
   const { t } = useTranslation()
@@ -49,14 +52,14 @@ export function StatsPage() {
       )}
 
       {!isLoading && data && data.total === 0 && (
-        <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-16 text-center">
+        <div className="rounded-lg border border-dashed border-border bg-surface/50 px-6 py-16 text-center">
           <p className="text-lg font-medium text-foreground">{t('stats.noData')}</p>
         </div>
       )}
 
       {!isLoading && data && data.total > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-border bg-surface p-5">
+          <div className="rounded-lg border border-border bg-surface p-5">
             <h2 className="mb-2 text-sm font-semibold text-foreground">
               {t('stats.completionRate')}
             </h2>
@@ -92,7 +95,7 @@ export function StatsPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-surface p-5">
+          <div className="rounded-lg border border-border bg-surface p-5">
             <h2 className="mb-2 text-sm font-semibold text-foreground">{t('stats.byCategory')}</h2>
             {categoryData.length === 0 ? (
               <p className="py-16 text-center text-sm text-muted">{t('stats.noCategoryData')}</p>

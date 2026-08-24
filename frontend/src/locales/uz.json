@@ -14,7 +14,8 @@
     "confirm": "Tasdiqlash",
     "back": "Orqaga",
     "all": "Barchasi",
-    "undo": "Ortga qaytarish"
+    "undo": "Ortga qaytarish",
+    "searchPlaceholder": "Vazifalarni qidirish..."
   },
   "nav": {
     "mainLabel": "Asosiy navigatsiya",
@@ -24,9 +25,14 @@
     "stats": "Statistika",
     "settings": "Sozlamalar"
   },
-  "theme": {
-    "switchToLight": "Yorug' rejimga o'tish",
-    "switchToDark": "Qorong'i rejimga o'tish"
+  "sidebar": {
+    "newTask": "Yangi vazifa",
+    "collapse": "Panelni yig'ish",
+    "expand": "Panelni yoyish"
+  },
+  "topbar": {
+    "telegramLinked": "Telegram ulangan",
+    "telegramNotLinked": "Telegram ulanmagan"
   },
   "auth": {
     "login": "Kirish",
@@ -79,6 +85,11 @@
     "priority_low": "Past",
     "priority_medium": "O'rta",
     "priority_high": "Yuqori",
+    "status_overdue": "Muddati o'tgan",
+    "status_dueSoon": "Tez orada",
+    "status_completed": "Bajarildi",
+    "status_snoozed": "Kechiktirilgan",
+    "status_scheduled": "Rejalashtirilgan",
     "overdueSection": "Muddati o'tgan",
     "todaySection": "Bugungi vazifalar",
     "todayProgress": "{{done}}/{{total}} bajarildi",
@@ -97,6 +108,8 @@
     "filterCompleted": "Bajarilgan",
     "filterSnoozed": "Kechiktirilgan",
     "snooze": "Keyinga qoldirish",
+    "rowActions": "Vazifa amallari",
+    "colTask": "Vazifa",
     "skip": "Bu safar o'tkazib yuborish",
     "skippedSuccess": "Vazifa o'tkazib yuborildi, keyingisi rejalashtirildi",
     "snooze15m": "15 daqiqaga",
@@ -123,6 +136,8 @@
     "weekly": "Haftalik",
     "monthly": "Oylik",
     "completionRate": "Bajarilish darajasi",
+    "dueToday": "Bugun muddati",
+    "overdueCount": "Muddati o'tgan",
     "byCategory": "Kategoriya bo'yicha",
     "noData": "Bu davr uchun ma'lumot yo'q",
     "noCategoryData": "Kategoriya bo'yicha ma'lumot yo'q"

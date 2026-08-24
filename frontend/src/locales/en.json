@@ -14,7 +14,8 @@
     "confirm": "Confirm",
     "back": "Back",
     "all": "All",
-    "undo": "Undo"
+    "undo": "Undo",
+    "searchPlaceholder": "Search tasks..."
   },
   "nav": {
     "mainLabel": "Main navigation",
@@ -24,9 +25,14 @@
     "stats": "Stats",
     "settings": "Settings"
   },
-  "theme": {
-    "switchToLight": "Switch to light mode",
-    "switchToDark": "Switch to dark mode"
+  "sidebar": {
+    "newTask": "New task",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
+  },
+  "topbar": {
+    "telegramLinked": "Telegram linked",
+    "telegramNotLinked": "Telegram not linked"
   },
   "auth": {
     "login": "Log in",
@@ -79,6 +85,11 @@
     "priority_low": "Low",
     "priority_medium": "Medium",
     "priority_high": "High",
+    "status_overdue": "Overdue",
+    "status_dueSoon": "Due soon",
+    "status_completed": "Completed",
+    "status_snoozed": "Snoozed",
+    "status_scheduled": "Scheduled",
     "overdueSection": "Overdue",
     "todaySection": "Today's tasks",
     "todayProgress": "{{done}}/{{total}} done",
@@ -97,6 +108,8 @@
     "filterCompleted": "Completed",
     "filterSnoozed": "Snoozed",
     "snooze": "Snooze",
+    "rowActions": "Task actions",
+    "colTask": "Task",
     "skip": "Skip this occurrence",
     "skippedSuccess": "Skipped — next occurrence scheduled",
     "snooze15m": "15 minutes",
@@ -123,6 +136,8 @@
     "weekly": "Weekly",
     "monthly": "Monthly",
     "completionRate": "Completion rate",
+    "dueToday": "Due today",
+    "overdueCount": "Overdue",
     "byCategory": "By category",
     "noData": "No data for this period",
     "noCategoryData": "No category data"

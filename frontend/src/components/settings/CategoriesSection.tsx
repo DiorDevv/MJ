@@ -92,7 +92,7 @@ function CategoryRow({ category }: { category: Category }) {
         type="button"
         onClick={() => setIsEditing(true)}
         aria-label={t('common.edit')}
-        className="flex size-8 items-center justify-center rounded-lg text-muted opacity-100 hover:bg-surface-hover hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
+        className="flex size-8 items-center justify-center rounded-md text-muted opacity-100 transition-colors hover:bg-surface-hover hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
       >
         <Pencil className="size-4" aria-hidden="true" />
       </button>
@@ -101,7 +101,7 @@ function CategoryRow({ category }: { category: Category }) {
         onClick={handleDelete}
         aria-label={t('common.delete')}
         disabled={deleteMutation.isPending}
-        className="flex size-8 items-center justify-center rounded-lg text-muted opacity-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-red-950"
+        className="flex size-8 items-center justify-center rounded-md text-muted opacity-100 transition-colors hover:bg-danger-subtle hover:text-danger disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <Trash2 className="size-4" aria-hidden="true" />
       </button>
@@ -178,7 +178,7 @@ export function CategoriesSection() {
   const { data: categories = [], isLoading } = useCategories()
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-5">
+    <section className="rounded-lg border border-border bg-surface p-5">
       <h2 className="text-sm font-semibold text-foreground">{t('settings.categories')}</h2>
       <p className="mt-1 text-sm text-muted">{t('settings.categoriesDescription')}</p>
 

@@ -31,14 +31,14 @@ export function SettingsPage() {
     <div className="flex max-w-2xl flex-col gap-4">
       <h1 className="text-2xl font-bold text-foreground">{t('nav.settings')}</h1>
 
-      <section className="rounded-xl border border-border bg-surface p-5">
+      <section className="rounded-lg border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">{t('settings.account')}</h2>
         <p className="mt-1 text-sm text-muted">{user?.username}</p>
       </section>
 
       <CategoriesSection />
 
-      <section className="rounded-xl border border-border bg-surface p-5">
+      <section className="rounded-lg border border-border bg-surface p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">{t('settings.webPush')}</h2>
@@ -52,11 +52,11 @@ export function SettingsPage() {
         </div>
 
         {!isSupported && (
-          <p className="mt-3 text-sm text-amber-600">{t('settings.webPushUnsupported')}</p>
+          <p className="mt-3 text-sm text-warning">{t('settings.webPushUnsupported')}</p>
         )}
 
         {isSupported && permission === 'denied' && (
-          <p className="mt-3 text-sm text-red-600">{t('settings.webPushDenied')}</p>
+          <p className="mt-3 text-sm text-danger">{t('settings.webPushDenied')}</p>
         )}
 
         {isSupported && permission !== 'denied' && (
@@ -71,7 +71,7 @@ export function SettingsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-border bg-surface p-5">
+      <section className="rounded-lg border border-border bg-surface p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">{t('settings.telegram')}</h2>

@@ -43,7 +43,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-sm">
         <h1 className="mb-6 text-center text-2xl font-semibold text-foreground">
           {t('auth.login')}
         </h1>

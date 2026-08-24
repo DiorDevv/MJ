@@ -85,7 +85,7 @@ function TelegramLinkModalContent({ onClose }: { onClose: () => void }) {
         <div className="py-6 text-sm text-muted">{t('common.loading')}</div>
       ) : (
         <>
-          <div className="rounded-xl border border-border bg-surface-hover px-6 py-4 font-mono text-3xl font-bold tracking-[0.3em] text-foreground">
+          <div className="rounded-lg border border-border bg-surface-hover px-6 py-4 font-mono text-3xl font-bold tracking-[0.3em] text-foreground">
             {code}
           </div>
           <p className="text-xs text-muted">

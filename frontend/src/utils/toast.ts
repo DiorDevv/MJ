@@ -1,42 +1,18 @@
-import { createElement } from 'react'
-import toast from 'react-hot-toast'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { useToastStore } from '../store/toastStore'
 
 export function showSuccessToast(message: string): void {
-  toast.success(message, {
-    icon: createElement(CheckCircle2, {
-      className: 'size-5 text-emerald-500',
-      'aria-hidden': true,
-    }),
-  })
+  useToastStore.getState().push({ message, variant: 'success', duration: 4000 })
 }
 
 export function showErrorToast(message: string): void {
-  toast.error(message, {
-    icon: createElement(XCircle, { className: 'size-5 text-red-500', 'aria-hidden': true }),
-  })
+  useToastStore.getState().push({ message, variant: 'error', duration: 5000 })
 }
 
 export function showUndoToast(message: string, undoLabel: string, onUndo: () => void): void {
-  toast(
-    (activeToast) =>
-      createElement(
-        'div',
-        { className: 'flex items-center gap-3' },
-        createElement('span', null, message),
-        createElement(
-          'button',
-          {
-            type: 'button',
-            className: 'font-semibold text-primary-600 hover:underline',
-            onClick: () => {
-              onUndo()
-              toast.dismiss(activeToast.id)
-            },
-          },
-          undoLabel,
-        ),
-      ),
-    { duration: 5000 },
-  )
+  useToastStore.getState().push({
+    message,
+    variant: 'info',
+    duration: 5000,
+    action: { label: undoLabel, onClick: onUndo },
+  })
 }

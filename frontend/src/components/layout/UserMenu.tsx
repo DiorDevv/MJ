@@ -15,7 +15,7 @@ export function UserMenu() {
         type="button"
         onClick={() => void logout()}
         aria-label={t('auth.logout')}
-        className="flex size-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-hover hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+        className="flex size-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <LogOut className="size-4" aria-hidden="true" />
       </button>

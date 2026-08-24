@@ -1,48 +1,80 @@
 @import 'tailwindcss';
 
-/* Class-based dark mode: toggled by adding/removing `.dark` on <html>.
-   See src/store/themeStore.ts for the logic that sets it. */
+/* Dark-only for v1 (see themeStore removal) — `.dark` stays hardcoded on <html>
+   (index.html) purely so the existing `dark:` variant utilities sprinkled
+   through older components keep resolving; there is no light palette or
+   toggle anymore. Every design token below lives inside `@theme` rather than
+   a plain `:root`/`.dark` selector — Tailwind v4 only reliably generates
+   utilities (bg-*, text-*, border-*, ...) for custom properties declared in
+   `@theme`; some multi-segment names declared outside it (surface-hover,
+   surface-active) silently produced no utility at all despite the variable
+   itself resolving fine, which is what this structure avoids. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'SFMono-Regular', Menlo, Consolas, monospace;
 
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
+  /* Elevation: bg (page) → surface (card/panel) → surface-hover (raised/active). */
+  --color-background: #0a0b0d;
+  --color-surface: #121316;
+  --color-surface-hover: #1a1c20;
+  --color-surface-active: #212327;
 
-  /* Semantic surface/text/border tokens: light values here, dark overrides
-     below under `.dark`. Components should reach for these (bg-background,
-     bg-surface, text-foreground, border-border, ...) instead of raw gray-N
-     scales, so a single edit here re-themes the whole app. */
-  --color-background: #f8fafc;
-  --color-surface: #ffffff;
-  --color-surface-hover: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-foreground: #1e293b;
-  --color-muted: #64748b;
+  /* 1px hairlines, not shadows — low-opacity white so they read on any
+     surface level without needing a separate token per elevation. */
+  --color-border: color-mix(in oklab, white 9%, transparent);
+  --color-border-strong: color-mix(in oklab, white 16%, transparent);
+
+  --color-foreground: #e8e9ec;
+  --color-muted: #8b8f99;
+
+  /* Accent — the ONE saturated color, reserved for active states, key actions,
+     links, and focus rings. Everything else in the UI stays neutral. */
+  --color-accent: #22d3ee;
+  --color-accent-hover: #67e3f9;
+  --color-accent-active: #06b6d4;
+  --color-accent-subtle: color-mix(in oklab, var(--color-accent) 14%, transparent);
+  --color-accent-foreground: #06282e;
+
+  /* `primary-*` kept as a ramp (existing components reference bg-primary-600,
+     text-primary-300, etc. all over the app) but repainted from indigo to
+     shades of the new accent, so those call sites re-theme for free instead
+     of needing a mechanical find-replace across every file in this pass.
+     600 is deliberately darker than the raw accent hue (not just "accent at
+     a darker lightness step") — it's the shade every solid `bg-primary-600
+     text-white` button in the app pairs with white text, and the bright
+     accent cyan only clears ~3.7:1 there, short of WCAG AA's 4.5:1. #0e7490
+     clears ~5.4:1 while still reading unambiguously as "the accent, darker". */
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e3f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #0891b2;
+  --color-primary-600: #0e7490;
+  --color-primary-700: #155e75;
+  --color-primary-800: #164e63;
+  --color-primary-900: #0b3440;
+  --color-primary-950: #082430;
+
+  /* Status — distinct from the accent so "active/selected" never gets
+     confused with "overdue" or "done". */
+  --color-danger: #f43f5e;
+  --color-danger-subtle: color-mix(in oklab, var(--color-danger) 14%, transparent);
+  --color-warning: #f59e0b;
+  --color-warning-subtle: color-mix(in oklab, var(--color-warning) 14%, transparent);
+  --color-success: #34d399;
+  --color-success-subtle: color-mix(in oklab, var(--color-success) 14%, transparent);
+
+  /* Radius scale — three sizes, everything in the app picks one of these. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
 :root {
-  color-scheme: light;
-}
-
-.dark {
   color-scheme: dark;
-
-  --color-background: #0f1117;
-  --color-surface: #181b25;
-  --color-surface-hover: #20242f;
-  --color-border: #2b2f3b;
-  --color-foreground: #e5e7eb;
-  --color-muted: #94a3b8;
 }
 
 body {
@@ -50,8 +82,99 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
 }
 
 #root {
   min-height: 100svh;
+}
+
+/* Numeric/timestamp/ID values use the mono face throughout the app. */
+.font-mono,
+[data-mono] {
+  font-feature-settings: 'zero', 'ss02';
+}
+
+/* Shared Radix primitive enter/exit motion — transform + opacity only, 150-200ms,
+   driven off each primitive's own `data-state` attribute so no JS/framer-motion
+   is needed for Dialog/Select/DropdownMenu/Toast open-close transitions. */
+@keyframes radix-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes radix-pop-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+}
+@keyframes radix-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes radix-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.radix-pop[data-state='open'] {
+  animation: radix-pop-in 160ms ease-out;
+}
+.radix-pop[data-state='closed'] {
+  animation: radix-pop-out 150ms ease-in;
+}
+.radix-overlay[data-state='open'] {
+  animation: radix-fade-in 180ms ease-out;
+}
+.radix-overlay[data-state='closed'] {
+  animation: radix-fade-out 150ms ease-in;
+}
+.toast-root[data-state='open'],
+.toast-root[data-swipe='cancel'] {
+  animation: toast-in 180ms ease-out;
+}
+.toast-root[data-state='closed'] {
+  animation: toast-out 150ms ease-in;
+}
+.toast-root[data-swipe='move'] {
+  transform: translateX(var(--radix-toast-swipe-move-x));
+}
+.toast-root[data-swipe='end'] {
+  animation: toast-out 100ms ease-in;
 }
