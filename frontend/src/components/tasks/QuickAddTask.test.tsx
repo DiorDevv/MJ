@@ -4,13 +4,20 @@ import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../test/utils'
 import { QuickAddTask } from './QuickAddTask'
 import { createTask } from '../../api/tasks'
-import type { Task } from '../../types/task'
+import { fetchCategories } from '../../api/categories'
+import type { Category, Task } from '../../types/task'
 
 vi.mock('../../api/tasks', () => ({
   createTask: vi.fn(),
 }))
+vi.mock('../../api/categories', () => ({
+  fetchCategories: vi.fn(),
+}))
 
 const mockedCreateTask = vi.mocked(createTask)
+const mockedFetchCategories = vi.mocked(fetchCategories)
+
+const FAKE_CATEGORY: Category = { id: 'cat-1', name: 'Uy', color: '#6366f1' }
 
 const FAKE_TASK: Task = {
   id: 'task-1',
@@ -32,6 +39,8 @@ describe('QuickAddTask', () => {
   beforeEach(() => {
     mockedCreateTask.mockReset()
     mockedCreateTask.mockResolvedValue(FAKE_TASK)
+    mockedFetchCategories.mockReset()
+    mockedFetchCategories.mockResolvedValue([FAKE_CATEGORY])
   })
 
   it('creates a task defaulting to today at 09:00 and clears the input', async () => {
@@ -69,6 +78,33 @@ describe('QuickAddTask', () => {
     await user.type(input, '   {Enter}')
 
     expect(mockedCreateTask).not.toHaveBeenCalled()
+  })
+
+  it('parses "!muhim #uy" shorthand into priority and category, overriding filter defaults', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<QuickAddTask categoryId="cat-other" priority="low" />)
+
+    const input = await screen.findByPlaceholderText(/tez vazifa qo'shish/i)
+    await waitFor(() => expect(mockedFetchCategories).toHaveBeenCalled())
+    await user.type(input, '!muhim #uy kir yuvish{Enter}')
+
+    await waitFor(() => expect(mockedCreateTask).toHaveBeenCalledTimes(1))
+    expect(mockedCreateTask).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'kir yuvish', priority: 'high', category_id: 'cat-1' }),
+    )
+  })
+
+  it('creates one task per comma-separated item, sharing the same date/time', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<QuickAddTask />)
+
+    const input = screen.getByPlaceholderText(/tez vazifa qo'shish/i)
+    await user.type(input, 'sut olish, non olish, kir yuvish{Enter}')
+
+    await waitFor(() => expect(mockedCreateTask).toHaveBeenCalledTimes(3))
+    const titles = mockedCreateTask.mock.calls.map(([input]) => input.title)
+    expect(titles).toEqual(['sut olish', 'non olish', 'kir yuvish'])
+    await waitFor(() => expect(input).toHaveValue(''))
   })
 
   it('pressing "n" anywhere on the page focuses the quick-add input', async () => {

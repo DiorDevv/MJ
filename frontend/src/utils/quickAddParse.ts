@@ -1,23 +1,45 @@
 import { addDays, format } from 'date-fns'
 import { todayIsoDate } from './date'
+import type { Category, Priority } from '../types/task'
 
-// Mirrors telegram_bot/handlers/quick_add.py's `_extract_date_time_title` so the
-// same "bugun/ertaga + HH:MM" free-text shorthand works identically on both the
-// web quick-add input and the bot's quick-add message.
-// Deliberately non-global: these are only ever used with .test()/.exec(), which
-// are stateful (track lastIndex) on a global regex and would silently break on
-// the second call reusing this same module-level object.
+// Mirrors telegram_bot/handlers/quick_add.py's `_parse_quick_add` so the same
+// "bugun/ertaga + HH:MM + !priority + #category" free-text shorthand, and the
+// same one-line-per-task batching, works identically on the web quick-add
+// input and the bot's quick-add message.
 const TIME_PATTERN = /\b([01]?\d|2[0-3]):([0-5]\d)\b/
 const TOMORROW_PATTERN = /\bertaga\b/i
 const TODAY_PATTERN = /\bbugun\b/i
 
+const PRIORITY_KEYWORDS: Record<string, Priority> = {
+  past: 'low',
+  yuqori: 'high',
+  muhim: 'high',
+  shoshilinch: 'high',
+  orta: 'medium',
+  "o'rta": 'medium',
+}
+const PRIORITY_PATTERN = new RegExp(`!(${Object.keys(PRIORITY_KEYWORDS).join('|')})\\b`, 'i')
+const CATEGORY_TAG_PATTERN = /#(\S+)/
+const SEGMENT_SPLIT_PATTERN = /[\n,]+/
+
 export interface ParsedQuickAdd {
   dueDate: string
   dueTime: string
-  title: string
+  priority: Priority
+  category: Category | null
+  /** One title per line/comma-separated item; date/time/priority/category are shared. */
+  titles: string[]
 }
 
-export function parseQuickAdd(text: string): ParsedQuickAdd {
+function cleanTitle(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[ ,.-]+/, '')
+    .replace(/[ ,.-]+$/, '')
+}
+
+export function parseQuickAdd(text: string, categories: Category[] = []): ParsedQuickAdd {
   let remaining = text
   let dueDate = todayIsoDate()
 
@@ -35,11 +57,31 @@ export function parseQuickAdd(text: string): ParsedQuickAdd {
     remaining = remaining.replace(timeMatch[0], '')
   }
 
-  const title = remaining
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^[ ,.-]+/, '')
-    .replace(/[ ,.-]+$/, '')
+  let priority: Priority = 'medium'
+  const priorityMatch = remaining.match(PRIORITY_PATTERN)
+  const priorityWord = priorityMatch?.[1]?.toLowerCase()
+  const matchedPriority = priorityWord ? PRIORITY_KEYWORDS[priorityWord] : undefined
+  if (priorityMatch && matchedPriority) {
+    priority = matchedPriority
+    remaining = remaining.replace(priorityMatch[0], '')
+  }
 
-  return { dueDate, dueTime, title: title || text.trim() }
+  let category: Category | null = null
+  const categoryMatch = remaining.match(CATEGORY_TAG_PATTERN)
+  const tag = categoryMatch?.[1]?.toLowerCase()
+  if (categoryMatch && tag) {
+    const matched = categories.find((c) => c.name.toLowerCase() === tag)
+    if (matched) {
+      category = matched
+      remaining = remaining.replace(categoryMatch[0], '')
+    }
+  }
+
+  let titles = remaining
+    .split(SEGMENT_SPLIT_PATTERN)
+    .map(cleanTitle)
+    .filter((title) => title.length > 0)
+  if (titles.length === 0) titles = [text.trim()]
+
+  return { dueDate, dueTime, priority, category, titles }
 }

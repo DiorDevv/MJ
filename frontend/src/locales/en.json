@@ -57,6 +57,7 @@
   "tasks": {
     "addTask": "New task",
     "quickAddPlaceholder": "Quick add... e.g. \"ertaga 14:00 doctor appointment\" (N, Enter)",
+    "quickAddHint": "ertaga/bugun, time, !muhim or !past, #category — separate multiple with commas",
     "editTask": "Edit task",
     "title": "Title",
     "titlePlaceholder": "What needs to be done?",
@@ -104,6 +105,7 @@
     "complete": "Mark as complete",
     "reopen": "Reopen",
     "createdSuccess": "Task created",
+    "createdMultipleSuccess": "{{count}} tasks created",
     "updatedSuccess": "Task updated",
     "deletedSuccess": "Task deleted",
     "snoozedSuccess": "Task snoozed",

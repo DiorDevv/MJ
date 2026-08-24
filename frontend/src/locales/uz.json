@@ -57,6 +57,7 @@
   "tasks": {
     "addTask": "Yangi vazifa",
     "quickAddPlaceholder": "Tez vazifa qo'shish... masalan \"ertaga 14:00 shifokorga borish\" (N, Enter)",
+    "quickAddHint": "ertaga/bugun, soat, !muhim yoki !past, #kategoriya — vergul bilan ajratib bir nechtasini birdan qo'shing",
     "editTask": "Vazifani tahrirlash",
     "title": "Sarlavha",
     "titlePlaceholder": "Nima qilish kerak?",
@@ -104,6 +105,7 @@
     "complete": "Bajarildi deb belgilash",
     "reopen": "Qayta ochish",
     "createdSuccess": "Vazifa qo'shildi",
+    "createdMultipleSuccess": "{{count}} ta vazifa qo'shildi",
     "updatedSuccess": "Vazifa yangilandi",
     "deletedSuccess": "Vazifa o'chirildi",
     "snoozedSuccess": "Vazifa keyinga qoldirildi",
