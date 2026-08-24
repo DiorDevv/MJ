@@ -56,7 +56,7 @@
   },
   "tasks": {
     "addTask": "New task",
-    "quickAddPlaceholder": "Quick add a task... (press N, then Enter)",
+    "quickAddPlaceholder": "Quick add... e.g. \"ertaga 14:00 doctor appointment\" (N, Enter)",
     "editTask": "Edit task",
     "title": "Title",
     "titlePlaceholder": "What needs to be done?",

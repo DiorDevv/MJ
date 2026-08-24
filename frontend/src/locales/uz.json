@@ -56,7 +56,7 @@
   },
   "tasks": {
     "addTask": "Yangi vazifa",
-    "quickAddPlaceholder": "Tez vazifa qo'shish... (N tugmasi, Enter bosing)",
+    "quickAddPlaceholder": "Tez vazifa qo'shish... masalan \"ertaga 14:00 shifokorga borish\" (N, Enter)",
     "editTask": "Vazifani tahrirlash",
     "title": "Sarlavha",
     "titlePlaceholder": "Nima qilish kerak?",

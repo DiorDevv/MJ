@@ -5,7 +5,7 @@ import { Button, Input } from '../ui'
 import { useCreateTask } from '../../hooks/useTaskMutations'
 import { showErrorToast, showSuccessToast } from '../../utils/toast'
 import { ApiError } from '../../api/client'
-import { todayIsoDate } from '../../utils/date'
+import { parseQuickAdd } from '../../utils/quickAddParse'
 import type { Priority } from '../../types/task'
 
 interface QuickAddTaskProps {
@@ -35,14 +35,14 @@ export function QuickAddTask({ categoryId, priority }: QuickAddTaskProps) {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    const trimmed = title.trim()
-    if (!trimmed) return
+    if (!title.trim()) return
+    const { dueDate, dueTime, title: parsedTitle } = parseQuickAdd(title)
 
     createTaskMutation.mutate(
       {
-        title: trimmed,
-        due_date: todayIsoDate(),
-        due_time: '09:00:00',
+        title: parsedTitle,
+        due_date: dueDate,
+        due_time: dueTime,
         category_id: categoryId || null,
         priority,
       },
