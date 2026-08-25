@@ -55,7 +55,7 @@ export function Dropdown<T extends string>({
           <Select.Content
             position="popper"
             sideOffset={4}
-            className="radix-pop z-30 max-h-60 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-surface-hover shadow-lg"
+            className="radix-pop z-[60] max-h-60 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-surface-hover shadow-lg"
           >
             <Select.Viewport className="p-1">
               {options.map((option) => (
