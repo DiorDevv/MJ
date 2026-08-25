@@ -1,22 +1,30 @@
+import asyncio
 import html
 import logging
 import re
 import uuid
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from aiogram import Bot, F, Router
 from aiogram.filters import StateFilter
-from aiogram.types import CallbackQuery, Message
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, FSInputFile, Message
 from app.db.session import AsyncSessionLocal
 from app.exceptions import TaskNotFoundError
 from app.models.category import Category
 from app.models.enums import Priority
-from app.schemas.task import TaskCreate
+from app.schemas.task import TaskCreate, TaskUpdate
 from app.services import category_service, task_service
-from app.services.voice_note_service import save_voice_note
+from app.services.voice_note_service import save_voice_note, voice_note_file_path
 
 from telegram_bot.db import get_linked_user
-from telegram_bot.keyboards.inline import PRIORITY_LABELS_UZ, undo_keyboard
+from telegram_bot.keyboards.inline import (
+    PRIORITY_LABELS_UZ,
+    undo_keyboard,
+    voice_date_keyboard,
+    voice_task_keyboard,
+)
+from telegram_bot.states.voice_states import VoiceQuickAddStates
 from telegram_bot.stt import (
     MAX_VOICE_SECONDS,
     TranscriptionUnavailableError,
@@ -194,8 +202,31 @@ async def quick_add_task(message: Message) -> None:
     await _quick_add_from_text(message, user.id, raw_text)
 
 
+VOICE_PLACEHOLDER_TITLE = "🎙 Ovozli vazifa"
+_VOICE_DEFAULT_TIME = time(9, 0)
+
+
+def _parse_manual_date(text: str) -> date | None:
+    text = text.strip().lower()
+    if text == "bugun":
+        return date.today()
+    if text == "ertaga":
+        return date.today() + timedelta(days=1)
+    try:
+        return datetime.strptime(text, "%d.%m.%Y").date()
+    except ValueError:
+        return None
+
+
 @router.message(StateFilter(None), F.voice)
-async def quick_add_voice(message: Message, bot: Bot) -> None:
+async def quick_add_voice(message: Message, bot: Bot, state: FSMContext) -> None:
+    """Self-hosted CPU transcription (see telegram_bot/stt.py) is too slow and too
+    unreliable — a cold model load alone can take well over a minute — to sit on the
+    critical path of "user just wants a task saved fast". So this only downloads and
+    saves the recording, then asks a single quick question (which day) via buttons
+    to get a usable due date without depending on STT at all. The real transcription
+    still runs, just afterwards and in the background (see _enrich_voice_task_title)
+    as a best-effort title upgrade that the user never has to wait on or notice fail."""
     voice = message.voice
     if voice is None:
         return
@@ -212,21 +243,147 @@ async def quick_add_voice(message: Message, bot: Bot) -> None:
         await message.answer(NOT_LINKED_MESSAGE)
         return
 
-    await bot.send_chat_action(message.chat.id, "typing")
     try:
         audio_bytes = await download_voice_bytes(bot, voice)
-        raw_text = await transcribe_voice(audio_bytes)
     except TranscriptionUnavailableError:
-        logger.exception("Ovozli xabarni tanib bo'lmadi: chat_id=%s", message.chat.id)
-        await message.answer("🎙 Ovozli xabarni tanib bo'lmadi. Iltimos, matn bilan yozib ko'ring.")
+        logger.exception("Ovozli xabarni yuklab bo'lmadi: chat_id=%s", message.chat.id)
+        await message.answer("🎙 Ovozli xabarni yuklab bo'lmadi. Qaytadan urinib ko'ring.")
         return
 
-    # Saved regardless of transcription accuracy — the whole point is being able to
-    # go back and listen to what was actually said if the transcribed text is wrong.
     voice_note_path = save_voice_note(audio_bytes)
+    await state.update_data(voice_note_path=voice_note_path)
+    await state.set_state(VoiceQuickAddStates.awaiting_date_choice)
+    await message.answer("🎙 Ovozli xabar qabul qilindi. Qachonga?", reply_markup=voice_date_keyboard())
 
-    await message.answer(f"🎙 Eshitdim: «{html.escape(raw_text)}»")
-    await _quick_add_from_text(message, user.id, raw_text, voice_note_path=voice_note_path)
+
+async def _enrich_voice_task_title(user_id: uuid.UUID, task_id: uuid.UUID, voice_note_path: str) -> None:
+    """Fire-and-forget background upgrade: swaps the placeholder title for the
+    transcribed text if (and only if) STT succeeds in time. Never touches the task's
+    date/time/priority — those were already set by the user via the date buttons —
+    and any failure here is silent, since the task already exists and the recording
+    is already listenable either way."""
+    try:
+        audio_bytes = voice_note_file_path(voice_note_path).read_bytes()
+        raw_text = await transcribe_voice(audio_bytes)
+    except (TranscriptionUnavailableError, OSError):
+        logger.info("Ovozli vazifa uchun fon transkripsiyasi muvaffaqiyatsiz: task_id=%s", task_id)
+        return
+
+    title = _clean_title(raw_text)[:MAX_TITLE_LENGTH]
+    if not title:
+        return
+
+    async with AsyncSessionLocal() as db:
+        try:
+            await task_service.update_task(db, user_id, task_id, TaskUpdate(title=title))
+        except TaskNotFoundError:
+            pass
+
+
+async def _create_voice_task(
+    chat_id: int, due_date: date, voice_note_path: str
+) -> tuple[str, uuid.UUID] | None:
+    async with AsyncSessionLocal() as db:
+        user = await get_linked_user(db, chat_id)
+        if user is None:
+            return None
+        task_in = TaskCreate(
+            title=VOICE_PLACEHOLDER_TITLE,
+            due_date=due_date,
+            due_time=_VOICE_DEFAULT_TIME,
+            priority=Priority.MEDIUM,
+        )
+        task = await task_service.create_task(db, user.id, task_in, voice_note_path=voice_note_path)
+
+    asyncio.create_task(_enrich_voice_task_title(user.id, task.id, voice_note_path))
+
+    date_label = "bugun" if due_date == date.today() else due_date.strftime("%d.%m.%Y")
+    summary = (
+        f"✅ <b>Vazifa qo'shildi:</b>\n\n{VOICE_PLACEHOLDER_TITLE}\n"
+        f"📅 {date_label}\n🕐 {_VOICE_DEFAULT_TIME.strftime('%H:%M')}"
+    )
+    return summary, task.id
+
+
+@router.callback_query(VoiceQuickAddStates.awaiting_date_choice, F.data.startswith("voicedate:"))
+async def voice_date_chosen(callback: CallbackQuery, state: FSMContext) -> None:
+    if not isinstance(callback.data, str):
+        return
+    choice = callback.data.split(":", 1)[1]
+
+    if choice == "custom":
+        await state.set_state(VoiceQuickAddStates.awaiting_custom_date)
+        if isinstance(callback.message, Message):
+            await callback.message.edit_text(
+                "Sanani kiriting (masalan 25.12.2026) yoki 'bugun'/'ertaga' deb yozing:"
+            )
+        await callback.answer()
+        return
+
+    data = await state.get_data()
+    voice_note_path = data.get("voice_note_path")
+    await state.clear()
+    chat_id = callback.message.chat.id if isinstance(callback.message, Message) else None
+    if chat_id is None or voice_note_path is None:
+        await callback.answer()
+        return
+
+    due_date = date.today() if choice == "today" else date.today() + timedelta(days=1)
+    result = await _create_voice_task(chat_id, due_date, voice_note_path)
+    if result is not None and isinstance(callback.message, Message):
+        summary, task_id = result
+        await callback.message.edit_text(summary, reply_markup=voice_task_keyboard(task_id))
+    await callback.answer()
+
+
+@router.message(VoiceQuickAddStates.awaiting_custom_date)
+async def voice_custom_date_entered(message: Message, state: FSMContext) -> None:
+    due_date = _parse_manual_date(message.text or "")
+    if due_date is None:
+        await message.answer("Sana formati noto'g'ri. Masalan: 25.12.2026, 'bugun' yoki 'ertaga':")
+        return
+
+    data = await state.get_data()
+    voice_note_path = data.get("voice_note_path")
+    await state.clear()
+    if voice_note_path is None:
+        return
+
+    result = await _create_voice_task(message.chat.id, due_date, voice_note_path)
+    if result is not None:
+        summary, task_id = result
+        await message.answer(summary, reply_markup=voice_task_keyboard(task_id))
+
+
+@router.callback_query(F.data.startswith("play_voice:"))
+async def play_voice_note(callback: CallbackQuery) -> None:
+    if not isinstance(callback.data, str):
+        return
+    task_id = callback.data.split(":", 1)[1]
+
+    async with AsyncSessionLocal() as db:
+        user = await get_linked_user(db, callback.from_user.id)
+        if user is None:
+            await callback.answer("Hisobingiz bog'lanmagan.", show_alert=True)
+            return
+        try:
+            task = await task_service.get_task(db, user.id, uuid.UUID(task_id))
+        except (TaskNotFoundError, ValueError):
+            await callback.answer("Vazifa topilmadi.", show_alert=True)
+            return
+
+    if task.voice_note_path is None:
+        await callback.answer("Bu vazifada ovozli xabar yo'q.", show_alert=True)
+        return
+
+    file_path = voice_note_file_path(task.voice_note_path)
+    if not file_path.is_file():
+        await callback.answer("Ovozli xabar topilmadi.", show_alert=True)
+        return
+
+    await callback.answer()
+    if isinstance(callback.message, Message):
+        await callback.message.answer_voice(FSInputFile(file_path))
 
 
 @router.callback_query(F.data.startswith("undo_add:"))

@@ -14,8 +14,11 @@ MAX_VOICE_SECONDS = 120
 
 # CPU-bound self-hosted transcription (see the speaches service in docker-compose.yml)
 # is meaningfully slower than the hosted OpenAI API's typical sub-second turnaround —
-# a few seconds per note is normal there, not a hang.
-_REQUEST_TIMEOUT_SECONDS = 60.0
+# a few seconds per note is normal there, not a hang. speaches also unloads the model
+# after being idle for a while, so the first request after a gap pays a one-off cold
+# load on top of that — observed to take over a minute on CPU, so the timeout needs
+# real headroom above the few-seconds warm case.
+_REQUEST_TIMEOUT_SECONDS = 150.0
 
 
 class TranscriptionUnavailableError(Exception):
@@ -29,7 +32,15 @@ async def download_voice_bytes(bot: Bot, voice: Voice) -> bytes:
     file_bytes: BinaryIO | None = await bot.download(voice)
     if file_bytes is None:
         raise TranscriptionUnavailableError("Ovozli xabar fayli yuklab olinmadi")
-    return file_bytes.read()
+    data = file_bytes.read()
+    if not data:
+        # Seen once during a cold-start race between the bot and Telegram's file
+        # server: bot.download() returns a stream that reads back empty instead of
+        # raising. Treat it the same as a failed download rather than silently
+        # saving a 0-byte recording that a task ends up permanently pointing at —
+        # unplayable on the web with no way to tell from the task alone.
+        raise TranscriptionUnavailableError("Ovozli xabar fayli bo'sh keldi")
+    return data
 
 
 async def transcribe_voice(audio_bytes: bytes) -> str:

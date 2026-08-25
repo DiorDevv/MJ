@@ -36,6 +36,29 @@ def undo_keyboard(task_id: uuid.UUID) -> InlineKeyboardMarkup:
     )
 
 
+def voice_task_keyboard(task_id: uuid.UUID) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🎙 Eshitish", callback_data=f"play_voice:{task_id}"),
+                InlineKeyboardButton(text="↩️ Bekor qilish", callback_data=f"undo_add:{task_id}"),
+            ]
+        ]
+    )
+
+
+def voice_date_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Bugun", callback_data="voicedate:today"),
+                InlineKeyboardButton(text="Ertaga", callback_data="voicedate:tomorrow"),
+            ],
+            [InlineKeyboardButton(text="📅 Sana kiritish", callback_data="voicedate:custom")],
+        ]
+    )
+
+
 def confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
