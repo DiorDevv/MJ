@@ -50,6 +50,10 @@ class Task(Base):
         index=True,
     )
     snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Filename (not a path) of the original Telegram voice note this task was quick-
+    # added from, under app/services/voice_note_service.py's storage dir — kept so a
+    # bad transcription can still be double-checked by listening to what was said.
+    voice_note_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_via: Mapped[CreatedVia] = mapped_column(
         Enum(CreatedVia, name="created_via_enum", native_enum=True), nullable=False
     )

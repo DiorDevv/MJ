@@ -36,6 +36,9 @@ services:
     # local curl/API-client access, see docker-compose.override.yml.
     volumes:
       - ./backend:/app
+      # Shared with `bot` (see below) — the bot writes voice quick-add recordings
+      # here, the backend serves them back via GET /tasks/{id}/voice.
+      - ./shared:/app/shared
     networks:
       - mj_network
 

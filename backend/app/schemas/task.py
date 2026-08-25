@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from app.models.enums import CreatedVia, Priority, RepeatType, TaskStatus
 from app.schemas.category import CategoryRead
@@ -59,6 +59,15 @@ class TaskRead(BaseModel):
     created_via: CreatedVia
     created_at: datetime
     updated_at: datetime
+    # Populated from the ORM column (from_attributes) but never serialized directly —
+    # only whether one exists is exposed. The file itself is served, ownership-checked,
+    # via GET /tasks/{id}/voice (see api/v1/tasks.py), not as a raw path here.
+    voice_note_path: str | None = Field(default=None, exclude=True, repr=False)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def has_voice_note(self) -> bool:
+        return self.voice_note_path is not None
 
 
 class TaskListResponse(BaseModel):

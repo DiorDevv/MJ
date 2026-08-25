@@ -68,3 +68,7 @@ export function snoozeTask(id: string, input: SnoozeInput): Promise<Task> {
 export function skipTask(id: string): Promise<Task> {
   return authorizedRequest<Task>(`/v1/tasks/${id}/skip`, { method: 'POST' })
 }
+
+export function fetchTaskVoiceNote(id: string): Promise<Blob> {
+  return authorizedRequest<Blob>(`/v1/tasks/${id}/voice`, { responseType: 'blob' })
+}

@@ -51,3 +51,8 @@ class RateLimitExceededError(AppException):
 class CannotSkipNonRecurringTaskError(AppException):
     status_code = 422
     detail = "Faqat takrorlanuvchi vazifalarni o'tkazib yuborish mumkin"
+
+
+class VoiceNoteNotFoundError(AppException):
+    status_code = 404
+    detail = "Bu vazifada ovozli xabar yo'q"

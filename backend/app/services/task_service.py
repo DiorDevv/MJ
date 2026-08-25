@@ -18,6 +18,7 @@ from app.models.category import Category
 from app.models.enums import CreatedVia, Priority, RepeatType, TaskStatus
 from app.models.task import Task
 from app.schemas.task import SnoozeRequest, TaskCreate, TaskUpdate
+from app.services.voice_note_service import voice_note_file_path
 
 # due_date/due_time are stored as naive local wall-clock values (the app runs in a single
 # fixed timezone, set via the container's TZ env var — there is no per-user timezone).
@@ -59,7 +60,18 @@ async def _get_owned_category(
     return category
 
 
-async def create_task(db: AsyncSession, user_id: uuid.UUID, task_in: TaskCreate) -> Task:
+async def create_task(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    task_in: TaskCreate,
+    *,
+    voice_note_path: str | None = None,
+) -> Task:
+    """`voice_note_path` is deliberately not a TaskCreate field: that schema is also
+    the public POST /tasks request body, and a path chosen by the caller would be a
+    path-traversal risk once served back via GET /tasks/{id}/voice. Only the bot's
+    voice quick-add (telegram_bot/handlers/quick_add.py) passes it, after saving the
+    file itself under voice_note_service's fixed directory."""
     if task_in.category_id is not None:
         await _get_owned_category(db, user_id, task_in.category_id)
 
@@ -74,6 +86,7 @@ async def create_task(db: AsyncSession, user_id: uuid.UUID, task_in: TaskCreate)
         priority=task_in.priority,
         status=TaskStatus.PENDING,
         created_via=CreatedVia.WEB,
+        voice_note_path=voice_note_path,
     )
     db.add(task)
     await db.commit()
@@ -200,8 +213,13 @@ async def update_task(
 
 async def delete_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID) -> None:
     task = await get_task(db, user_id, task_id)
+    voice_note_path = task.voice_note_path
     await db.delete(task)
     await db.commit()
+    if voice_note_path is not None:
+        # Best-effort: an orphaned recording left on disk is harmless clutter, while
+        # failing the delete over a missing/unreadable file would not be.
+        voice_note_file_path(voice_note_path).unlink(missing_ok=True)
 
 
 async def complete_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID) -> Task:

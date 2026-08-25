@@ -129,7 +129,9 @@
     "bulkDeletedSuccess": "{{count}} tasks deleted",
     "prevPage": "Previous",
     "nextPage": "Next",
-    "loadError": "Failed to load tasks"
+    "loadError": "Failed to load tasks",
+    "playVoiceNote": "Play voice note",
+    "voiceNoteError": "Couldn't load the voice note"
   },
   "stats": {
     "daily": "Daily",

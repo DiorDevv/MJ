@@ -52,6 +52,7 @@ describe('TaskModal', () => {
           status: 'pending',
           snoozed_until: null,
           created_via: 'web',
+          has_voice_note: false,
           created_at: '2026-08-12T00:00:00Z',
           updated_at: '2026-08-12T00:00:00Z',
         }}

@@ -13,10 +13,16 @@ from app.models.category import Category
 from app.models.enums import Priority
 from app.schemas.task import TaskCreate
 from app.services import category_service, task_service
+from app.services.voice_note_service import save_voice_note
 
 from telegram_bot.db import get_linked_user
 from telegram_bot.keyboards.inline import PRIORITY_LABELS_UZ, undo_keyboard
-from telegram_bot.stt import MAX_VOICE_SECONDS, TranscriptionUnavailableError, transcribe_voice
+from telegram_bot.stt import (
+    MAX_VOICE_SECONDS,
+    TranscriptionUnavailableError,
+    download_voice_bytes,
+    transcribe_voice,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,13 +119,18 @@ def _parse_quick_add(raw_text: str, categories: list[Category]) -> ParsedQuickAd
     return ParsedQuickAdd(due_date, due_time, priority, category, titles)
 
 
-async def _quick_add_from_text(message: Message, user_id: uuid.UUID, raw_text: str) -> None:
+async def _quick_add_from_text(
+    message: Message, user_id: uuid.UUID, raw_text: str, *, voice_note_path: str | None = None
+) -> None:
     """Creates the task(s) immediately (no confirm step) — a review-before-commit
     step made sense when quick-add fed into the multi-field guided flow's shared
     confirm screen, but is one extra round-trip per message than the mistake rate
     justifies. A single created task gets an undo button; a batch doesn't (no way
     to fit N task ids in Telegram's 64-byte callback_data), so batch mistakes are
-    cleaned up from the list view instead."""
+    cleaned up from the list view instead.
+
+    voice_note_path (set only by quick_add_voice) is attached to every task created
+    from a batch — there's one recording for the whole message, not one per title."""
     async with AsyncSessionLocal() as db:
         categories = await category_service.list_categories(db, user_id)
         parsed = _parse_quick_add(raw_text, categories)
@@ -139,7 +150,11 @@ async def _quick_add_from_text(message: Message, user_id: uuid.UUID, raw_text: s
                 priority=parsed.priority,
                 category_id=parsed.category.id if parsed.category else None,
             )
-            created.append(await task_service.create_task(db, user_id, task_in))
+            created.append(
+                await task_service.create_task(
+                    db, user_id, task_in, voice_note_path=voice_note_path
+                )
+            )
 
     is_today = parsed.due_date == date.today()
     date_label = "bugun" if is_today else parsed.due_date.strftime("%d.%m.%Y")
@@ -199,14 +214,19 @@ async def quick_add_voice(message: Message, bot: Bot) -> None:
 
     await bot.send_chat_action(message.chat.id, "typing")
     try:
-        raw_text = await transcribe_voice(bot, voice)
+        audio_bytes = await download_voice_bytes(bot, voice)
+        raw_text = await transcribe_voice(audio_bytes)
     except TranscriptionUnavailableError:
         logger.exception("Ovozli xabarni tanib bo'lmadi: chat_id=%s", message.chat.id)
         await message.answer("🎙 Ovozli xabarni tanib bo'lmadi. Iltimos, matn bilan yozib ko'ring.")
         return
 
+    # Saved regardless of transcription accuracy — the whole point is being able to
+    # go back and listen to what was actually said if the transcribed text is wrong.
+    voice_note_path = save_voice_note(audio_bytes)
+
     await message.answer(f"🎙 Eshitdim: «{html.escape(raw_text)}»")
-    await _quick_add_from_text(message, user.id, raw_text)
+    await _quick_add_from_text(message, user.id, raw_text, voice_note_path=voice_note_path)
 
 
 @router.callback_query(F.data.startswith("undo_add:"))

@@ -13,6 +13,8 @@ export class ApiError extends Error {
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
   accessToken?: string
+  /** 'blob' for binary responses (e.g. the voice-note audio file) — everything else is JSON. */
+  responseType?: 'json' | 'blob'
 }
 
 function extractErrorMessage(data: unknown, fallback: string): string {
@@ -24,7 +26,7 @@ function extractErrorMessage(data: unknown, fallback: string): string {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, accessToken, headers, ...rest } = options
+  const { body, accessToken, headers, responseType = 'json', ...rest } = options
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
@@ -47,6 +49,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (response.status === 204) {
     return undefined as T
+  }
+
+  if (responseType === 'blob') {
+    return (await response.blob()) as T
   }
 
   return (await response.json()) as T

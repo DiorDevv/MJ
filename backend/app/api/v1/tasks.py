@@ -1,16 +1,19 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.exceptions import VoiceNoteNotFoundError
 from app.models.enums import Priority, TaskStatus
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import SnoozeRequest, TaskCreate, TaskListResponse, TaskRead, TaskUpdate
 from app.services import task_service
 from app.services.task_service import FilterName, SortBy, SortOrder
+from app.services.voice_note_service import voice_note_file_path
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -119,3 +122,18 @@ async def skip_task(
     db: AsyncSession = Depends(get_db),
 ) -> Task:
     return await task_service.skip_task(db, current_user.id, task_id)
+
+
+@router.get("/{task_id}/voice")
+async def get_task_voice_note(
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    task = await task_service.get_task(db, current_user.id, task_id)
+    if task.voice_note_path is None:
+        raise VoiceNoteNotFoundError()
+    file_path = voice_note_file_path(task.voice_note_path)
+    if not file_path.is_file():
+        raise VoiceNoteNotFoundError()
+    return FileResponse(file_path, media_type="audio/ogg")

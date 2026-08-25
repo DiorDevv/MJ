@@ -22,6 +22,7 @@ import {
 } from '../../hooks/useTaskMutations'
 import { showErrorToast, showSuccessToast, showUndoToast } from '../../utils/toast'
 import { ApiError } from '../../api/client'
+import { VoiceNoteButton } from './VoiceNoteButton'
 
 interface TaskRowProps {
   task: Task
@@ -113,30 +114,33 @@ export function TaskRow({ task, onEdit, selectable, selected, onToggleSelect }: 
       </td>
 
       <td className="min-w-0 py-2 pr-3 pl-3">
-        <button
-          type="button"
-          onClick={() => onEdit(task)}
-          className="flex min-w-0 items-center gap-2 text-left"
-        >
-          <span
-            className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT_CLASS[status])}
-            aria-hidden="true"
-          />
-          <span className="min-w-0">
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onEdit(task)}
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          >
             <span
-              className={cn(
-                'block truncate text-sm font-medium text-foreground',
-                isCompleted && 'text-muted line-through',
+              className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT_CLASS[status])}
+              aria-hidden="true"
+            />
+            <span className="min-w-0">
+              <span
+                className={cn(
+                  'block truncate text-sm font-medium text-foreground',
+                  isCompleted && 'text-muted line-through',
+                )}
+              >
+                {task.title}
+              </span>
+              {task.description && (
+                <span className="block truncate text-xs text-muted">{task.description}</span>
               )}
-            >
-              {task.title}
             </span>
-            {task.description && (
-              <span className="block truncate text-xs text-muted">{task.description}</span>
-            )}
-          </span>
-          {isRecurring && <Repeat className="size-3.5 shrink-0 text-muted" aria-hidden="true" />}
-        </button>
+            {isRecurring && <Repeat className="size-3.5 shrink-0 text-muted" aria-hidden="true" />}
+          </button>
+          {task.has_voice_note && <VoiceNoteButton taskId={task.id} />}
+        </div>
       </td>
 
       <td className="hidden py-2 pr-3 whitespace-nowrap md:table-cell">

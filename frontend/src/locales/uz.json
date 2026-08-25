@@ -129,7 +129,9 @@
     "bulkDeletedSuccess": "{{count}} ta vazifa o'chirildi",
     "prevPage": "Oldingi",
     "nextPage": "Keyingi",
-    "loadError": "Vazifalarni yuklashda xatolik yuz berdi"
+    "loadError": "Vazifalarni yuklashda xatolik yuz berdi",
+    "playVoiceNote": "Ovozli xabarni tinglash",
+    "voiceNoteError": "Ovozli xabarni yuklab bo'lmadi"
   },
   "stats": {
     "daily": "Kunlik",

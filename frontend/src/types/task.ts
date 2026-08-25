@@ -23,6 +23,7 @@ export interface Task {
   created_via: CreatedVia
   created_at: string
   updated_at: string
+  has_voice_note: boolean
 }
 
 export interface TaskListResponse {
