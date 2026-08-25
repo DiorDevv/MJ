@@ -38,12 +38,31 @@ export function VoiceNoteButton({ taskId, className }: VoiceNoteButtonProps) {
     setIsLoading(true)
     try {
       const blob = await fetchTaskVoiceNote(taskId)
+      if (blob.size === 0) {
+        // A recording that failed to save fully (see the bot's download_voice_bytes)
+        // — nothing to decode, and playback would otherwise hang forever waiting
+        // for data that will never arrive rather than erroring out.
+        throw new Error('Empty voice note')
+      }
       const url = URL.createObjectURL(blob)
       objectUrlRef.current = url
       const audio = new Audio(url)
       audioRef.current = audio
-      await audio.play()
+      // A malformed/undecodable file can leave the media element stuck at
+      // HAVE_NOTHING indefinitely without ever firing 'error' or settling the
+      // play() promise — race it against a timeout so the button always recovers.
+      await Promise.race([
+        audio.play(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Voice note playback timed out')), 8000),
+        ),
+      ])
     } catch {
+      audioRef.current = null
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
       showErrorToast(t('tasks.voiceNoteError'))
     } finally {
       setIsLoading(false)
