@@ -39,3 +39,6 @@ dist-ssr/
 # --- TLS certificates / DB backups (never commit) ---
 nginx/certs/*.pem
 backups/
+
+# --- User-uploaded voice recordings (never commit) ---
+shared/voice_notes/*.ogg
