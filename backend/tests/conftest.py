@@ -18,6 +18,22 @@ os.environ.setdefault(
 
 TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 
+# `setdefault` above only kicks in when DATABASE_URL isn't already set — but it
+# always is inside the backend/bot containers (docker-compose passes the real
+# dev DB through). Without this check, running pytest in-container points
+# _setup_schema's drop_all/create_all straight at that live database instead of
+# a throwaway one. Learned the hard way: this wiped every real user/task/category
+# row in the dev database. The database name is the one signal available this
+# early (before any app.* import) that distinguishes "safe to nuke" from "not".
+if "test" not in TEST_DATABASE_URL.rsplit("/", 1)[-1].lower():
+    raise RuntimeError(
+        f"Refusing to run tests against DATABASE_URL={TEST_DATABASE_URL!r} — its "
+        "database name doesn't contain 'test'. This fixture drops and recreates "
+        "every table, so it must never point at a real database. Run tests with "
+        "DATABASE_URL unset (the mj_test_db default applies) or pointed at a "
+        "database whose name contains 'test'."
+    )
+
 
 async def _ensure_test_database_exists() -> None:
     admin_url = TEST_DATABASE_URL.replace("+asyncpg", "").rsplit("/", 1)[0] + "/postgres"
