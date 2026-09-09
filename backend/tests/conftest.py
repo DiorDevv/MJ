@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import os
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import asyncpg
 import pytest_asyncio
@@ -9,12 +10,55 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+
+def _load_project_env() -> dict[str, str]:
+    """Minimal `KEY=VALUE` reader for the repo-root .env.
+
+    Tests run on the host, where the real credentials live in .env (the sample
+    "change_me" password may have been rotated). The app itself reads .env via
+    pydantic-settings; mirror just the two keys we need here, before any `app.*`
+    import, without depending on python-dotenv being installed.
+    """
+    env_path = Path(__file__).resolve().parents[2] / ".env"
+    values: dict[str, str] = {}
+    if env_path.is_file():
+        for raw in env_path.read_text().splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            values[key.strip()] = val.strip().strip("'\"")
+    return values
+
+
+_project_env = _load_project_env()
+
+
+def _to_test_database_url(url: str) -> str:
+    """Rewrite a real DATABASE_URL to point at a throwaway local test database.
+
+    Swaps the compose-network host ("postgres", unresolvable from the host) for
+    localhost and forces the database name to "mj_test_db" so the safety check
+    below always passes while keeping whatever credentials .env carries.
+    """
+    base, _, _ = url.rpartition("/")
+    base = base.replace("@postgres:", "@localhost:")
+    return f"{base}/mj_test_db"
+
+
 # Must be set before any `app.*` import: app.core.config.settings is instantiated
 # eagerly at import time, so the DB URL has to already point at the test database.
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only-32-bytes-min")
 os.environ.setdefault(
-    "DATABASE_URL", "postgresql+asyncpg://mj_user:change_me@localhost:5432/mj_test_db"
+    "SECRET_KEY",
+    _project_env.get("SECRET_KEY", "test-secret-key-for-pytest-only-32-bytes-min"),
 )
+if "DATABASE_URL" not in os.environ:
+    os.environ["DATABASE_URL"] = _to_test_database_url(
+        _project_env.get(
+            "DATABASE_URL",
+            "postgresql+asyncpg://mj_user:change_me@localhost:5432/mj_db",
+        )
+    )
 
 TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 
