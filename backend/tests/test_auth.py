@@ -78,6 +78,36 @@ async def test_me_returns_current_user(client: AsyncClient) -> None:
     response = await client.get("/api/v1/auth/me", headers=headers)
     assert response.status_code == 200
     assert response.json()["username"] == "frank"
+    assert response.json()["quiet_hours_start"] is None
+
+
+async def test_patch_me_sets_and_clears_quiet_hours(client: AsyncClient) -> None:
+    headers = await register_user(client, "quiet_frank")
+
+    set_resp = await client.patch(
+        "/api/v1/auth/me",
+        json={"quiet_hours_start": "22:00:00", "quiet_hours_end": "07:00:00"},
+        headers=headers,
+    )
+    assert set_resp.status_code == 200
+    assert set_resp.json()["quiet_hours_start"] == "22:00:00"
+    assert set_resp.json()["quiet_hours_end"] == "07:00:00"
+
+    clear_resp = await client.patch(
+        "/api/v1/auth/me",
+        json={"quiet_hours_start": None, "quiet_hours_end": None},
+        headers=headers,
+    )
+    assert clear_resp.status_code == 200
+    assert clear_resp.json()["quiet_hours_start"] is None
+
+
+async def test_patch_me_rejects_only_one_bound(client: AsyncClient) -> None:
+    headers = await register_user(client, "half_quiet")
+    resp = await client.patch(
+        "/api/v1/auth/me", json={"quiet_hours_start": "22:00:00"}, headers=headers
+    )
+    assert resp.status_code == 422
 
 
 async def test_refresh_issues_new_access_token(client: AsyncClient) -> None:

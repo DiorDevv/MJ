@@ -16,6 +16,7 @@ from app.schemas.user import (
     TokenResponse,
     UserCreate,
     UserLogin,
+    UserPreferencesUpdate,
     UserRead,
 )
 from app.services import auth_service
@@ -137,6 +138,19 @@ async def logout_all(
 
 @router.get("/me", response_model=UserRead)
 async def read_current_user(current_user: User = Depends(get_current_user)) -> User:
+    return current_user
+
+
+@router.patch("/me", response_model=UserRead)
+async def update_preferences(
+    prefs: UserPreferencesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    current_user.quiet_hours_start = prefs.quiet_hours_start
+    current_user.quiet_hours_end = prefs.quiet_hours_end
+    await db.commit()
+    await db.refresh(current_user)
     return current_user
 
 

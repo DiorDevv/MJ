@@ -43,6 +43,17 @@ async def _create_next_occurrence(db: AsyncSession, task: Task) -> None:
     await db.commit()
 
 
+def _in_quiet_hours(user: User, now: datetime) -> bool:
+    start, end = user.quiet_hours_start, user.quiet_hours_end
+    if start is None or end is None:
+        return False
+    t = now.time()
+    if start <= end:
+        return start <= t < end
+    # window wraps midnight (e.g. 22:00–07:00)
+    return t >= start or t < end
+
+
 async def _process_due_tasks(db: AsyncSession) -> None:
     now_naive = datetime.now()
     due_at = Task.due_date.op("+")(Task.due_time)
@@ -58,6 +69,12 @@ async def _process_due_tasks(db: AsyncSession) -> None:
     due_tasks = result.scalars().all()
 
     for task in due_tasks:
+        # Quiet hours: leave the task PENDING and untouched — it'll be picked up
+        # on a later tick once the window has passed (which also defers the
+        # recurring-successor spawn until the reminder actually goes out).
+        if _in_quiet_hours(task.user, now_naive):
+            continue
+
         try:
             await notification_service.send_task_reminder(db, task)
         except Exception:

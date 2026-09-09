@@ -165,6 +165,50 @@ def test_monthly_recurrence_wraps_year() -> None:
     assert next_due_date(date(2025, 12, 31), RepeatType.MONTHLY) == date(2026, 1, 31)
 
 
+# --- quiet hours ---
+
+
+def test_in_quiet_hours_same_day_and_overnight() -> None:
+    from app.core.scheduler import _in_quiet_hours
+
+    class _U:
+        def __init__(self, s: time | None, e: time | None) -> None:
+            self.quiet_hours_start, self.quiet_hours_end = s, e
+
+    def at(h: int, m: int = 0) -> datetime:
+        return datetime(2026, 3, 10, h, m)
+
+    assert _in_quiet_hours(_U(None, None), at(3)) is False  # disabled
+    # same-day window 13:00–15:00
+    assert _in_quiet_hours(_U(time(13), time(15)), at(14)) is True
+    assert _in_quiet_hours(_U(time(13), time(15)), at(15)) is False
+    assert _in_quiet_hours(_U(time(13), time(15)), at(9)) is False
+    # overnight window 22:00–07:00
+    ov = _U(time(22), time(7))
+    assert _in_quiet_hours(ov, at(23)) is True
+    assert _in_quiet_hours(ov, at(3)) is True
+    assert _in_quiet_hours(ov, at(7)) is False
+    assert _in_quiet_hours(ov, at(12)) is False
+
+
+async def test_reminder_skipped_during_quiet_hours(db_session: AsyncSession) -> None:
+    user = await _make_user(db_session, "quiet_user")
+    now = datetime.now()
+    # a window that definitely contains "now"
+    user.quiet_hours_start = (now - timedelta(hours=1)).time().replace(microsecond=0)
+    user.quiet_hours_end = (now + timedelta(hours=1)).time().replace(microsecond=0)
+    await db_session.commit()
+
+    task = await _make_due_task(db_session, user, title="Jim vaqt", repeat_type=RepeatType.DAILY)
+
+    await scheduler.run_reminder_check(db_session)
+
+    rows = await _tasks_with_title(db_session, "Jim vaqt")
+    assert len(rows) == 1  # no successor spawned
+    assert rows[0].id == task.id
+    assert rows[0].status == TaskStatus.PENDING  # not marked completed
+
+
 # --- snooze expiry ---
 
 

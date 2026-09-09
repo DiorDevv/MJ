@@ -204,7 +204,13 @@
     "categoryDeleted": "Kategoriya o'chirildi",
     "memberSince": "A'zo bo'lgan sana",
     "connected": "Ulangan",
-    "notConnected": "Ulanmagan"
+    "notConnected": "Ulanmagan",
+    "quietHours": "Jim soatlar",
+    "quietHoursDescription": "Bu oraliqda eslatmalar (Telegram/push) yuborilmaydi. Oraliq tugagach yuboriladi.",
+    "quietHoursEnable": "Jim soatlarni yoqish",
+    "quietHoursFrom": "Dan",
+    "quietHoursTo": "Gacha",
+    "quietHoursSaved": "Jim soatlar saqlandi"
   },
   "errors": {
     "notFoundTitle": "Sahifa topilmadi",

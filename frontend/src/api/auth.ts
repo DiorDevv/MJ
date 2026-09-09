@@ -34,3 +34,12 @@ export function requestTelegramLinkCode(): Promise<TelegramLinkCode> {
 export function fetchCurrentUserAuthorized(): Promise<UserRead> {
   return authorizedRequest<UserRead>('/v1/auth/me')
 }
+
+export interface NotificationPreferences {
+  quiet_hours_start: string | null
+  quiet_hours_end: string | null
+}
+
+export function updateNotificationPreferences(prefs: NotificationPreferences): Promise<UserRead> {
+  return authorizedRequest<UserRead>('/v1/auth/me', { method: 'PATCH', body: prefs })
+}

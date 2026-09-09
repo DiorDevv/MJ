@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, DateTime, String, func
+from sqlalchemy import BigInteger, DateTime, String, Time, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +26,12 @@ class User(Base):
     telegram_link_code_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Local wall-clock window during which reminders are suppressed. Both NULL
+    # (the default) = no quiet hours. start > end means the window wraps midnight
+    # (e.g. 22:00–07:00).
+    quiet_hours_start: Mapped[time | None] = mapped_column(Time, nullable=True)
+    quiet_hours_end: Mapped[time | None] = mapped_column(Time, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
