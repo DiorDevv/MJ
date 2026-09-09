@@ -1,127 +1,274 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { useStats } from '../hooks/useStats'
-import { Dropdown, Skeleton } from '../components/ui'
-import type { DropdownOption } from '../components/ui'
+import { Flame, TrendingUp } from 'lucide-react'
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import { format, parseISO } from 'date-fns'
+import { enUS, uz } from 'date-fns/locale'
+import { useActivity, useStats, useStreak } from '../hooks/useStats'
+import { Card, ProgressRing, SegmentedControl, Skeleton } from '../components/ui'
+import type { SegmentOption } from '../components/ui'
+import { PageHeader } from '../components/layout/PageHeader'
+import { Page } from '../components/layout/Page'
+import { EmptyState } from '../components/tasks/EmptyState'
+import { ActivityHeatmap } from '../components/charts/ActivityHeatmap'
+import { chartTheme, priorityColor, tooltipProps } from '../components/charts/chartTheme'
 import type { StatsPeriod } from '../api/stats'
 
-// recharts needs real color values (not Tailwind classes) — reading the design
-// tokens as CSS custom properties keeps this in sync with index.css instead of
-// duplicating the palette here.
-const COMPLETED_COLOR = 'var(--color-success)'
-const PENDING_COLOR = 'var(--color-muted)'
-
 export function StatsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language.startsWith('en') ? enUS : uz
   const [period, setPeriod] = useState<StatsPeriod>('weekly')
-  const { data, isLoading } = useStats(period)
+  const stats = useStats(period)
+  const activity = useActivity(84)
+  const streak = useStreak()
+  const theme = chartTheme()
 
-  const periodOptions: DropdownOption<StatsPeriod>[] = [
+  const periodOptions: SegmentOption<StatsPeriod>[] = [
     { value: 'daily', label: t('stats.daily') },
     { value: 'weekly', label: t('stats.weekly') },
     { value: 'monthly', label: t('stats.monthly') },
   ]
 
-  const completionData = data
-    ? [
-        { name: t('tasks.filterCompleted'), value: data.completed, color: COMPLETED_COLOR },
-        { name: t('tasks.filterPending'), value: data.pending, color: PENDING_COLOR },
-      ]
-    : []
+  const trendData = useMemo(
+    () =>
+      (activity.data?.days ?? []).map((d) => ({
+        date: d.date,
+        [t('stats.tasksCompleted')]: d.completed,
+        [t('stats.tasksCreated')]: d.created,
+      })),
+    [activity.data, t],
+  )
 
-  const categoryData =
-    data?.by_category.map((category) => ({
-      name: category.name,
-      value: category.count,
-      color: category.color,
-    })) ?? []
+  const priorityData = useMemo(
+    () =>
+      (stats.data?.by_priority ?? []).map((p) => ({
+        name: t(`tasks.priority_${p.priority}`),
+        priority: p.priority,
+        count: p.count,
+      })),
+    [stats.data, t],
+  )
+
+  const categoryData = useMemo(
+    () =>
+      [...(stats.data?.by_category ?? [])]
+        .sort((a, b) => b.count - a.count)
+        .map((c) => ({ name: c.name, count: c.count, color: c.color })),
+    [stats.data],
+  )
+
+  const isLoading = stats.isLoading || activity.isLoading || streak.isLoading
+  const rate = stats.data ? Math.round(stats.data.completion_rate * 100) : 0
+  const totallyEmpty =
+    !isLoading &&
+    (stats.data?.total ?? 0) === 0 &&
+    (streak.data?.longest ?? 0) === 0 &&
+    (activity.data?.days ?? []).every((d) => d.completed === 0 && d.created === 0)
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">{t('nav.stats')}</h1>
-        <Dropdown options={periodOptions} value={period} onChange={setPeriod} className="w-40" />
-      </div>
+    <Page>
+      <PageHeader
+        title={t('nav.stats')}
+        subtitle={t('stats.subtitle')}
+        actions={
+          <SegmentedControl
+            options={periodOptions}
+            value={period}
+            onChange={setPeriod}
+            aria-label={t('stats.subtitle')}
+          />
+        }
+      />
 
       {isLoading && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Skeleton className="h-80 w-full" />
-          <Skeleton className="h-80 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-52 w-full" />
+          ))}
         </div>
       )}
 
-      {!isLoading && data && data.total === 0 && (
-        <div className="rounded-lg border border-dashed border-border bg-surface/50 px-6 py-16 text-center">
-          <p className="text-lg font-medium text-foreground">{t('stats.noData')}</p>
-        </div>
+      {totallyEmpty && (
+        <EmptyState title={t('stats.noData')} body={t('stats.noActivity')} icon={TrendingUp} />
       )}
 
-      {!isLoading && data && data.total > 0 && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-lg border border-border bg-surface p-5">
-            <h2 className="mb-2 text-sm font-semibold text-foreground">
-              {t('stats.completionRate')}
-            </h2>
-            <div className="relative">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={completionData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    stroke="none"
-                  >
-                    {completionData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div
-                className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-9"
-                aria-hidden="true"
-              >
-                <span className="text-3xl font-bold text-foreground">
-                  {Math.round(data.completion_rate * 100)}%
-                </span>
-                <span className="text-xs text-muted">{t('tasks.filterCompleted')}</span>
+      {!isLoading && !totallyEmpty && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Streak */}
+          <Card title={t('stats.streak')} icon={<Flame className="size-4" aria-hidden="true" />}>
+            <div className="flex items-end gap-3">
+              <span className="font-mono text-5xl leading-none font-bold text-foreground">
+                {streak.data?.current ?? 0}
+              </span>
+              <span className="pb-1 text-sm text-muted">{t('stats.days')}</span>
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              {t('stats.longestStreak', { count: streak.data?.longest ?? 0 })}
+            </p>
+          </Card>
+
+          {/* Completion rate */}
+          <Card title={t('stats.completionRate')}>
+            <div className="flex items-center gap-4">
+              <ProgressRing value={stats.data ? stats.data.completion_rate : 0} size={104}>
+                <span className="font-mono text-2xl font-bold text-foreground">{rate}%</span>
+              </ProgressRing>
+              <div className="space-y-1.5 text-sm">
+                <p className="flex items-center gap-2 text-muted">
+                  <span className="size-2 rounded-full bg-success" aria-hidden="true" />
+                  {t('tasks.filterCompleted')}
+                  <span className="font-mono text-foreground">{stats.data?.completed ?? 0}</span>
+                </p>
+                <p className="flex items-center gap-2 text-muted">
+                  <span className="size-2 rounded-full bg-muted" aria-hidden="true" />
+                  {t('tasks.filterPending')}
+                  <span className="font-mono text-foreground">{stats.data?.pending ?? 0}</span>
+                </p>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="rounded-lg border border-border bg-surface p-5">
-            <h2 className="mb-2 text-sm font-semibold text-foreground">{t('stats.byCategory')}</h2>
-            {categoryData.length === 0 ? (
-              <p className="py-16 text-center text-sm text-muted">{t('stats.noCategoryData')}</p>
+          {/* By priority */}
+          <Card title={t('stats.byPriority')}>
+            {priorityData.every((p) => p.count === 0) ? (
+              <p className="py-10 text-center text-sm text-muted">{t('stats.noPriorityData')}</p>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={100}
-                    stroke="none"
-                    label
-                  >
-                    {categoryData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={priorityData} layout="vertical" margin={{ left: 0, right: 24 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={64}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: theme.axis, fontSize: 12 }}
+                  />
+                  <Tooltip {...tooltipProps()} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
+                    {priorityData.map((p) => (
+                      <Cell key={p.priority} fill={priorityColor(p.priority)} />
                     ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
+                    <LabelList
+                      dataKey="count"
+                      position="right"
+                      fill={theme.foreground}
+                      fontSize={12}
+                    />
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             )}
-          </div>
+          </Card>
+
+          {/* Activity heatmap */}
+          <Card
+            title={t('stats.activityHeatmap')}
+            action={<span className="text-xs text-muted">{t('stats.last12Weeks')}</span>}
+            className="md:col-span-2 lg:col-span-3"
+          >
+            <ActivityHeatmap days={activity.data?.days ?? []} />
+          </Card>
+
+          {/* Completion trend */}
+          <Card title={t('stats.completionTrend')} className="md:col-span-2">
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={trendData} margin={{ left: -20, right: 8, top: 4 }}>
+                <defs>
+                  <linearGradient id="fillCompleted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={theme.success} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={theme.success} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={theme.grid} vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={40}
+                  tick={{ fill: theme.axis, fontSize: 11 }}
+                  tickFormatter={(v: string) => format(parseISO(v), 'd MMM', { locale })}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  width={32}
+                  tick={{ fill: theme.axis, fontSize: 11 }}
+                />
+                <Tooltip
+                  {...tooltipProps()}
+                  labelFormatter={(v) =>
+                    typeof v === 'string' ? format(parseISO(v), 'd MMM yyyy', { locale }) : v
+                  }
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: theme.muted }} />
+                <Area
+                  type="monotone"
+                  dataKey={t('stats.tasksCompleted')}
+                  stroke={theme.success}
+                  strokeWidth={2}
+                  fill="url(#fillCompleted)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey={t('stats.tasksCreated')}
+                  stroke={theme.muted}
+                  strokeWidth={1.5}
+                  fill="none"
+                  strokeDasharray="4 3"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* By category */}
+          <Card title={t('stats.byCategory')}>
+            {categoryData.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted">{t('stats.noCategoryData')}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(140, categoryData.length * 34)}>
+                <BarChart data={categoryData} layout="vertical" margin={{ left: 0, right: 24 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={90}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: theme.axis, fontSize: 12 }}
+                  />
+                  <Tooltip {...tooltipProps()} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
+                    {categoryData.map((c) => (
+                      <Cell key={c.name} fill={c.color} />
+                    ))}
+                    <LabelList
+                      dataKey="count"
+                      position="right"
+                      fill={theme.foreground}
+                      fontSize={12}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
         </div>
       )}
-    </div>
+    </Page>
   )
 }

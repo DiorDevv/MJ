@@ -15,7 +15,9 @@
     "back": "Orqaga",
     "all": "Barchasi",
     "undo": "Ortga qaytarish",
-    "searchPlaceholder": "Vazifalarni qidirish..."
+    "searchPlaceholder": "Vazifalarni qidirish...",
+    "more": "yana",
+    "less": "kamroq"
   },
   "nav": {
     "mainLabel": "Asosiy navigatsiya",
@@ -131,7 +133,11 @@
     "nextPage": "Keyingi",
     "loadError": "Vazifalarni yuklashda xatolik yuz berdi",
     "playVoiceNote": "Ovozli xabarni tinglash",
-    "voiceNoteError": "Ovozli xabarni yuklab bo'lmadi"
+    "voiceNoteError": "Ovozli xabarni yuklab bo'lmadi",
+    "nextUp": "Keyingisi: {{time}}",
+    "moreTasks": "+{{count}} ta yana",
+    "rangeLabel": "{{from}}–{{to}} / {{total}}",
+    "noTasks": "Vazifa yo'q"
   },
   "stats": {
     "daily": "Kunlik",
@@ -142,7 +148,25 @@
     "overdueCount": "Muddati o'tgan",
     "byCategory": "Kategoriya bo'yicha",
     "noData": "Bu davr uchun ma'lumot yo'q",
-    "noCategoryData": "Kategoriya bo'yicha ma'lumot yo'q"
+    "noCategoryData": "Kategoriya bo'yicha ma'lumot yo'q",
+    "subtitle": "Faoliyatingiz umumiy ko'rinishi",
+    "streak": "Ketma-ketlik",
+    "currentStreak": "Joriy ketma-ketlik",
+    "longestStreak": "Eng uzun: {{count}} kun",
+    "days": "kun",
+    "activity": "Faollik",
+    "activityHeatmap": "Faollik xaritasi",
+    "last12Weeks": "so'nggi 12 hafta",
+    "completionTrend": "Bajarish tendensiyasi",
+    "byPriority": "Muhimlik bo'yicha",
+    "noActivity": "Hali faollik yo'q",
+    "noPriorityData": "Ma'lumot yo'q",
+    "daysActiveCount": "{{count}} ta bajarildi",
+    "heatmapLess": "kam",
+    "heatmapMore": "ko'p",
+    "tasksCompleted": "Bajarilgan",
+    "tasksCreated": "Yaratilgan",
+    "completedOfTotal": "{{total}} tadan {{completed}} ta"
   },
   "settings": {
     "account": "Hisob",
@@ -172,7 +196,10 @@
     "categoriesDescription": "Vazifalarni guruhlash uchun kategoriyalarni boshqaring.",
     "noCategories": "Hali kategoriya yo'q",
     "categoryUpdated": "Kategoriya yangilandi",
-    "categoryDeleted": "Kategoriya o'chirildi"
+    "categoryDeleted": "Kategoriya o'chirildi",
+    "memberSince": "A'zo bo'lgan sana",
+    "connected": "Ulangan",
+    "notConnected": "Ulanmagan"
   },
   "errors": {
     "notFoundTitle": "Sahifa topilmadi",

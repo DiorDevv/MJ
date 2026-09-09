@@ -13,8 +13,10 @@ import { TaskTableSkeleton } from '../components/tasks/TaskTableSkeleton'
 import { TaskModal } from '../components/tasks/TaskModal'
 import { QuickAddTask } from '../components/tasks/QuickAddTask'
 import { EmptyState } from '../components/tasks/EmptyState'
-import { Button, Dropdown, Input } from '../components/ui'
-import type { DropdownOption } from '../components/ui'
+import { Button, Card, Dropdown, Input, SegmentedControl } from '../components/ui'
+import type { DropdownOption, SegmentOption } from '../components/ui'
+import { PageHeader } from '../components/layout/PageHeader'
+import { Page } from '../components/layout/Page'
 import type { Priority, Task } from '../types/task'
 import { showSuccessToast, showUndoToast } from '../utils/toast'
 
@@ -84,7 +86,7 @@ export function ListPage() {
     })
   }
 
-  const statusOptions: DropdownOption<StatusFilter>[] = [
+  const statusOptions: SegmentOption<StatusFilter>[] = [
     { value: '', label: t('tasks.filterAll') },
     { value: 'pending', label: t('tasks.filterPending') },
     { value: 'completed', label: t('tasks.filterCompleted') },
@@ -107,18 +109,20 @@ export function ListPage() {
   ]
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">{t('nav.list')}</h1>
-        <Button
-          onClick={() => setModalTask(null)}
-          leftIcon={<Plus className="size-4" aria-hidden="true" />}
-        >
-          {t('tasks.addTask')}
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title={t('nav.list')}
+        actions={
+          <Button
+            onClick={() => setModalTask(null)}
+            leftIcon={<Plus className="size-4" aria-hidden="true" />}
+          >
+            {t('tasks.addTask')}
+          </Button>
+        }
+      />
 
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
+      <Card className="flex flex-col gap-3 p-4">
         <Input
           placeholder={t('tasks.searchPlaceholder')}
           value={search}
@@ -128,17 +132,18 @@ export function ListPage() {
             setSelectedIds(new Set())
           }}
         />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Dropdown
-            label={t('tasks.filterAll')}
-            options={statusOptions}
-            value={status}
-            onChange={(value) => {
-              setStatus(value)
-              setOffset(0)
-              setSelectedIds(new Set())
-            }}
-          />
+        <SegmentedControl
+          options={statusOptions}
+          value={status}
+          onChange={(value) => {
+            setStatus(value)
+            setOffset(0)
+            setSelectedIds(new Set())
+          }}
+          aria-label={t('tasks.filterAll')}
+          className="w-full [&>label]:flex-1"
+        />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Dropdown
             label={t('tasks.priority')}
             options={priorityOptions}
@@ -189,12 +194,12 @@ export function ListPage() {
             </button>
           </div>
         </div>
-      </div>
+      </Card>
 
       <QuickAddTask categoryId={categoryId || undefined} priority={priority || undefined} />
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-accent/30 bg-accent-subtle px-4 py-2.5">
+        <div className="sticky top-2 z-10 flex items-center justify-between rounded-lg border border-accent/30 bg-accent-subtle px-4 py-2.5 shadow-raised backdrop-blur">
           <span className="text-sm font-medium text-foreground">
             {t('tasks.selectedCount', { count: selectedIds.size })}
           </span>
@@ -263,6 +268,6 @@ export function ListPage() {
         onClose={() => setModalTask(undefined)}
         task={modalTask}
       />
-    </div>
+    </Page>
   )
 }

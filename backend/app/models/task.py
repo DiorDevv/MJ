@@ -50,6 +50,12 @@ class Task(Base):
         index=True,
     )
     snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Set when the task reaches "completed" (by the user or the scheduler), cleared
+    # on reopen. Distinct from updated_at, which moves on any edit — this is the
+    # single source of truth for "when was it done", powering the stats endpoints.
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     # Filename (not a path) of the original Telegram voice note this task was quick-
     # added from, under app/services/voice_note_service.py's storage dir — kept so a
     # bad transcription can still be double-checked by listening to what was said.

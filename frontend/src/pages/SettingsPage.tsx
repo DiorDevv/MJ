@@ -1,18 +1,23 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bell, BellOff, MessageCircle } from 'lucide-react'
+import { Bell, BellOff, MessageCircle, UserRound } from 'lucide-react'
+import { format } from 'date-fns'
+import { enUS, uz } from 'date-fns/locale'
 import { useWebPush } from '../hooks/useWebPush'
-import { Badge, Button } from '../components/ui'
+import { Badge, Button, Card } from '../components/ui'
+import { PageHeader } from '../components/layout/PageHeader'
+import { Page } from '../components/layout/Page'
 import { TelegramLinkModal } from '../components/settings/TelegramLinkModal'
 import { CategoriesSection } from '../components/settings/CategoriesSection'
 import { useAuthStore } from '../store/authStore'
 import { showErrorToast, showSuccessToast } from '../utils/toast'
 
 export function SettingsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { permission, isSubscribed, isLoading, isSupported, subscribe, unsubscribe } = useWebPush()
   const user = useAuthStore((state) => state.user)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
+  const locale = i18n.language.startsWith('en') ? enUS : uz
 
   const handleToggle = async () => {
     try {
@@ -28,70 +33,76 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
-      <h1 className="text-2xl font-bold text-foreground">{t('nav.settings')}</h1>
+    <Page>
+      <div className="flex max-w-2xl flex-col gap-4">
+        <PageHeader title={t('nav.settings')} />
 
-      <section className="rounded-lg border border-border bg-surface p-5">
-        <h2 className="text-sm font-semibold text-foreground">{t('settings.account')}</h2>
-        <p className="mt-1 text-sm text-muted">{user?.username}</p>
-      </section>
-
-      <CategoriesSection />
-
-      <section className="rounded-lg border border-border bg-surface p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">{t('settings.webPush')}</h2>
-            <p className="mt-1 text-sm text-muted">{t('settings.webPushDescription')}</p>
-          </div>
-          {isSubscribed ? (
-            <Bell className="size-5 shrink-0 text-primary-600" aria-hidden="true" />
-          ) : (
-            <BellOff className="size-5 shrink-0 text-muted" aria-hidden="true" />
+        <Card
+          title={t('settings.account')}
+          icon={<UserRound className="size-4" aria-hidden="true" />}
+        >
+          <p className="text-sm font-medium text-foreground">{user?.username}</p>
+          {user?.created_at && (
+            <p className="mt-1 text-xs text-muted">
+              {t('settings.memberSince')}: {format(new Date(user.created_at), 'd MMMM yyyy', { locale })}
+            </p>
           )}
-        </div>
+        </Card>
 
-        {!isSupported && (
-          <p className="mt-3 text-sm text-warning">{t('settings.webPushUnsupported')}</p>
-        )}
+        <CategoriesSection />
 
-        {isSupported && permission === 'denied' && (
-          <p className="mt-3 text-sm text-danger">{t('settings.webPushDenied')}</p>
-        )}
-
-        {isSupported && permission !== 'denied' && (
-          <Button
-            className="mt-3"
-            variant={isSubscribed ? 'secondary' : 'primary'}
-            isLoading={isLoading}
-            onClick={() => void handleToggle()}
-          >
-            {t(isSubscribed ? 'settings.disableWebPush' : 'settings.enableWebPush')}
-          </Button>
-        )}
-      </section>
-
-      <section className="rounded-lg border border-border bg-surface p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">{t('settings.telegram')}</h2>
-            <p className="mt-1 text-sm text-muted">{t('settings.telegramDescription')}</p>
+        <Card title={t('settings.webPush')} icon={<Bell className="size-4" aria-hidden="true" />}>
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm text-muted">{t('settings.webPushDescription')}</p>
+            {isSubscribed ? (
+              <Bell className="size-5 shrink-0 text-accent" aria-hidden="true" />
+            ) : (
+              <BellOff className="size-5 shrink-0 text-muted" aria-hidden="true" />
+            )}
           </div>
-          <MessageCircle className="size-5 shrink-0 text-muted" aria-hidden="true" />
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <Badge variant={user?.telegram_chat_id ? 'success' : 'default'}>
-            {t(user?.telegram_chat_id ? 'settings.telegramLinked' : 'settings.telegramNotLinked')}
-          </Badge>
-          {!user?.telegram_chat_id && (
-            <Button size="sm" onClick={() => setIsLinkModalOpen(true)}>
-              {t('settings.telegramLinkCta')}
-            </Button>
-          )}
-        </div>
-      </section>
 
-      <TelegramLinkModal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} />
-    </div>
+          {!isSupported && (
+            <p className="mt-3 text-sm text-warning">{t('settings.webPushUnsupported')}</p>
+          )}
+          {isSupported && permission === 'denied' && (
+            <p className="mt-3 text-sm text-danger">{t('settings.webPushDenied')}</p>
+          )}
+          {isSupported && permission !== 'denied' && (
+            <div className="mt-3 flex items-center gap-3">
+              <Badge variant={isSubscribed ? 'success' : 'default'}>
+                {t(isSubscribed ? 'settings.connected' : 'settings.notConnected')}
+              </Badge>
+              <Button
+                variant={isSubscribed ? 'secondary' : 'primary'}
+                size="sm"
+                isLoading={isLoading}
+                onClick={() => void handleToggle()}
+              >
+                {t(isSubscribed ? 'settings.disableWebPush' : 'settings.enableWebPush')}
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        <Card
+          title={t('settings.telegram')}
+          icon={<MessageCircle className="size-4" aria-hidden="true" />}
+        >
+          <p className="text-sm text-muted">{t('settings.telegramDescription')}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <Badge variant={user?.telegram_chat_id ? 'success' : 'default'}>
+              {t(user?.telegram_chat_id ? 'settings.telegramLinked' : 'settings.telegramNotLinked')}
+            </Badge>
+            {!user?.telegram_chat_id && (
+              <Button size="sm" onClick={() => setIsLinkModalOpen(true)}>
+                {t('settings.telegramLinkCta')}
+              </Button>
+            )}
+          </div>
+        </Card>
+
+        <TelegramLinkModal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} />
+      </div>
+    </Page>
   )
 }

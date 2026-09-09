@@ -5,6 +5,11 @@ export interface CategoryStat {
   count: number
 }
 
+export interface PriorityStat {
+  priority: 'low' | 'medium' | 'high'
+  count: number
+}
+
 export interface StatsResponse {
   period: 'daily' | 'weekly' | 'monthly'
   completed: number
@@ -12,4 +17,20 @@ export interface StatsResponse {
   total: number
   completion_rate: number
   by_category: CategoryStat[]
+  by_priority: PriorityStat[]
+}
+
+export interface ActivityDay {
+  date: string
+  completed: number
+  created: number
+}
+
+export interface ActivityResponse {
+  days: ActivityDay[]
+}
+
+export interface StreakResponse {
+  current: number
+  longest: number
 }

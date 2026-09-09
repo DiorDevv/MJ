@@ -15,7 +15,9 @@
     "back": "Back",
     "all": "All",
     "undo": "Undo",
-    "searchPlaceholder": "Search tasks..."
+    "searchPlaceholder": "Search tasks...",
+    "more": "more",
+    "less": "less"
   },
   "nav": {
     "mainLabel": "Main navigation",
@@ -131,7 +133,11 @@
     "nextPage": "Next",
     "loadError": "Failed to load tasks",
     "playVoiceNote": "Play voice note",
-    "voiceNoteError": "Couldn't load the voice note"
+    "voiceNoteError": "Couldn't load the voice note",
+    "nextUp": "Next up: {{time}}",
+    "moreTasks": "+{{count}} more",
+    "rangeLabel": "{{from}}–{{to}} / {{total}}",
+    "noTasks": "No tasks"
   },
   "stats": {
     "daily": "Daily",
@@ -142,7 +148,25 @@
     "overdueCount": "Overdue",
     "byCategory": "By category",
     "noData": "No data for this period",
-    "noCategoryData": "No category data"
+    "noCategoryData": "No category data",
+    "subtitle": "An overview of your activity",
+    "streak": "Streak",
+    "currentStreak": "Current streak",
+    "longestStreak": "Longest: {{count}} days",
+    "days": "days",
+    "activity": "Activity",
+    "activityHeatmap": "Activity heatmap",
+    "last12Weeks": "last 12 weeks",
+    "completionTrend": "Completion trend",
+    "byPriority": "By priority",
+    "noActivity": "No activity yet",
+    "noPriorityData": "No data",
+    "daysActiveCount": "{{count}} completed",
+    "heatmapLess": "Less",
+    "heatmapMore": "More",
+    "tasksCompleted": "Completed",
+    "tasksCreated": "Created",
+    "completedOfTotal": "{{completed}} of {{total}}"
   },
   "settings": {
     "account": "Account",
@@ -172,7 +196,10 @@
     "categoriesDescription": "Manage the categories you use to group tasks.",
     "noCategories": "No categories yet",
     "categoryUpdated": "Category updated",
-    "categoryDeleted": "Category deleted"
+    "categoryDeleted": "Category deleted",
+    "memberSince": "Member since",
+    "connected": "Connected",
+    "notConnected": "Not connected"
   },
   "errors": {
     "notFoundTitle": "Page not found",
