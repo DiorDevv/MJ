@@ -95,12 +95,35 @@ yakuniy image'da umuman yo'q).
 ## Zaxira nusxa
 
 ```bash
-./scripts/backup-db.sh                              # backups/mj_db_<sana>.sql.gz yaratadi
+./scripts/backup-db.sh                               # backups/mj_db_<sana>.sql.gz yaratadi
 ./scripts/restore-db.sh backups/mj_db_2026....sql.gz # joriy ma'lumotlarni ALMASHTIRADI
+./scripts/install-backup-cron.sh                     # kunlik 03:00 cron o'rnatadi
 ```
 
-`postgres_data` — oddiy Docker volume, o'zining zaxira mexanizmi yo'q, shu skriptni
-muntazam (masalan kunlik cron orqali) ishga tushirish tavsiya etiladi.
+`postgres_data` — oddiy Docker volume, o'zining zaxira mexanizmi yo'q. Kunlik
+avtomatlashtirish: yuqoridagi cron, yoki systemd —
+`deploy/systemd/mj-backup.{service,timer}` (ichida o'rnatish yo'riqnomasi).
+
+**Offsite:** lokal `backups/` papkasi VM bilan birga yo'qoladi. `.env` da
+`BACKUP_RCLONE_REMOTE` ni sozlangan rclone remote'ga (S3 / B2 / Google Drive /
+SFTP — `rclone config` orqali) qo'ysangiz, `backup-db.sh` har dumpni o'sha yerga
+ham nusxalaydi va offsite retention'ni (`BACKUP_RCLONE_MAX_AGE`, standart 21d)
+kuzatadi.
+
+**Bajarilgan vazifalar retention:** `.env` da `COMPLETED_TASK_RETENTION_DAYS`
+(standart `0` = o'chirmaslik) qo'ysangiz, backend'ning kunlik jadval jarayoni
+shundan eski bajarilgan vazifalarni o'chiradi — takroriy nusxalar cheksiz
+to'planib ketmasligi uchun.
+
+## Kuzatuv (observability)
+
+- **Log:** `ENVIRONMENT=development` dan boshqa hamma joyda backend/bot JSON
+  formatda log yozadi (`LOG_JSON=true/false` bilan majburlash mumkin). Har log
+  qatorida `request_id` bo'ladi; har HTTP javob `X-Request-ID` sarlavhasini
+  qaytaradi (kirish sarlavhasi bo'lsa — o'shani).
+- **Xatoliklar:** `.env` da `SENTRY_DSN` to'ldirilsa backend Sentry'ga xatolik
+  hisobotlarini yuboradi (`SENTRY_TRACES_SAMPLE_RATE` — tracing ulushi). Bo'sh —
+  o'chiq, hech narsa yuborilmaydi.
 
 ## Arxitektura
 
@@ -136,6 +159,10 @@ black --check app && ruff check app && mypy app
 ```bash
 cd frontend
 npm install
-npm run typecheck && npm run lint && npm run build
+npm run typecheck && npm run lint && npm run format:check && npm run build
 npm test               # Vitest + Testing Library
 ```
+
+Aynan shu tekshiruvlar har `push` (main) va har PR'da GitHub Actions'da avtomatik
+ishlaydi — `.github/workflows/ci.yml` (backend: black/ruff/mypy/pytest bilan
+alohida Postgres xizmati; frontend: typecheck/lint/format/test/build).

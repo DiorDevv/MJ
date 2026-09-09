@@ -29,8 +29,16 @@ class ActivityDay(BaseModel):
     created: int
 
 
+class ActivitySummary(BaseModel):
+    total_completed: int
+    avg_per_day: float
+    # 0 = Monday … 6 = Sunday; null when nothing was completed in the window.
+    best_weekday: int | None
+
+
 class ActivityResponse(BaseModel):
     days: list[ActivityDay]
+    summary: ActivitySummary
 
 
 class StreakResponse(BaseModel):

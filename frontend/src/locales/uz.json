@@ -166,7 +166,9 @@
     "heatmapMore": "ko'p",
     "tasksCompleted": "Bajarilgan",
     "tasksCreated": "Yaratilgan",
-    "completedOfTotal": "{{total}} tadan {{completed}} ta"
+    "completedOfTotal": "{{total}} tadan {{completed}} ta",
+    "avgPerDay": "O'rtacha/kun",
+    "bestWeekday": "Eng samarali kun"
   },
   "settings": {
     "account": "Hisob",

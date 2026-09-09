@@ -12,6 +12,7 @@ from app.models.task import Task
 from app.schemas.stats import (
     ActivityDay,
     ActivityResponse,
+    ActivitySummary,
     CategoryStat,
     PriorityStat,
     StatsResponse,
@@ -111,7 +112,20 @@ async def get_activity(db: AsyncSession, user_id: uuid.UUID, days: int) -> Activ
         )
         for offset in range(days)
     ]
-    return ActivityResponse(days=out)
+
+    total_completed = sum(d.completed for d in out)
+    by_weekday: Counter[int] = Counter()
+    for d in out:
+        if d.completed:
+            by_weekday[date.fromisoformat(d.date).weekday()] += d.completed
+    best_weekday = max(by_weekday, key=lambda k: by_weekday[k]) if by_weekday else None
+
+    summary = ActivitySummary(
+        total_completed=total_completed,
+        avg_per_day=round(total_completed / days, 2),
+        best_weekday=best_weekday,
+    )
+    return ActivityResponse(days=out, summary=summary)
 
 
 async def get_streak(db: AsyncSession, user_id: uuid.UUID) -> StreakResponse:

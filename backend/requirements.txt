@@ -21,6 +21,11 @@ bcrypt>=4.0,<4.1
 pywebpush>=2.0,<3.0
 apscheduler>=3.10,<3.11
 
+# --- Observability ---
+# Both opt-in: JSON logs only outside development, Sentry only when SENTRY_DSN is set.
+python-json-logger>=3.1,<4.0
+sentry-sdk[fastapi]>=2.20,<3.0
+
 # --- Config ---
 python-dotenv>=1.0,<2.0
 

@@ -26,8 +26,16 @@ export interface ActivityDay {
   created: number
 }
 
+export interface ActivitySummary {
+  total_completed: number
+  avg_per_day: number
+  /** 0 = Monday … 6 = Sunday; null when nothing completed in the window. */
+  best_weekday: number | null
+}
+
 export interface ActivityResponse {
   days: ActivityDay[]
+  summary: ActivitySummary
 }
 
 export interface StreakResponse {

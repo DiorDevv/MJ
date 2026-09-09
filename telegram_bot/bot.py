@@ -8,10 +8,11 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from app.core.config import settings
+from app.core.observability import configure_logging
 
 from telegram_bot.handlers import menu, quick_add, reminder_actions, start, task_create
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 

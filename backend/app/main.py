@@ -11,9 +11,17 @@ from app.api.v1.push import router as push_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.tasks import router as tasks_router
 from app.core.config import settings
+from app.core.observability import (
+    RequestIdMiddleware,
+    configure_logging,
+    init_sentry,
+)
 from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.core.startup_checks import warn_if_insecure_defaults
 from app.exceptions import AppException
+
+configure_logging()
+init_sentry()
 
 
 @asynccontextmanager
@@ -26,6 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 app = FastAPI(title="MJ API", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

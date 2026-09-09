@@ -23,7 +23,14 @@ interface StatTileProps {
 
 /** Icon chip + mono value + label. The single stat-block used on Daily and
  * Stats — generalised from the old inline tile in StatsStrip. */
-export function StatTile({ label, value, icon: Icon, tone = 'neutral', hint, className }: StatTileProps) {
+export function StatTile({
+  label,
+  value,
+  icon: Icon,
+  tone = 'neutral',
+  hint,
+  className,
+}: StatTileProps) {
   return (
     <div
       className={cn(

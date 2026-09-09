@@ -15,7 +15,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, setDay } from 'date-fns'
 import { enUS, uz } from 'date-fns/locale'
 import { useActivity, useStats, useStreak } from '../hooks/useStats'
 import { Card, ProgressRing, SegmentedControl, Skeleton } from '../components/ui'
@@ -181,6 +181,32 @@ export function StatsPage() {
             className="md:col-span-2 lg:col-span-3"
           >
             <ActivityHeatmap days={activity.data?.days ?? []} />
+            {activity.data?.summary && activity.data.summary.total_completed > 0 && (
+              <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                <span>
+                  {t('stats.avgPerDay')}:{' '}
+                  <span className="font-mono text-foreground">
+                    {activity.data.summary.avg_per_day}
+                  </span>
+                </span>
+                {activity.data.summary.best_weekday !== null && (
+                  <span>
+                    {t('stats.bestWeekday')}:{' '}
+                    <span className="text-foreground">
+                      {format(setDay(new Date(), activity.data.summary.best_weekday + 1), 'EEEE', {
+                        locale,
+                      })}
+                    </span>
+                  </span>
+                )}
+                <span>
+                  {t('stats.tasksCompleted')}:{' '}
+                  <span className="font-mono text-foreground">
+                    {activity.data.summary.total_completed}
+                  </span>
+                </span>
+              </p>
+            )}
           </Card>
 
           {/* Completion trend */}

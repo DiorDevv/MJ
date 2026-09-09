@@ -17,6 +17,13 @@ services:
     # Compose de-dupes bind mounts by target, so this replaces the base mount.
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    # Vite restarts often during dev — don't hold nginx hostage to its health
+    # (prod keeps the base file's service_healthy gate).
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
 
   postgres:
     ports:
@@ -34,6 +41,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    healthcheck:
+      # Dev: the Vite dev server on :5173, not the prod nginx on :80.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5173/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   speaches:
     ports:
