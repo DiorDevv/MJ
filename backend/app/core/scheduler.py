@@ -11,7 +11,7 @@ from app.models.enums import RepeatType, TaskStatus
 from app.models.task import Task
 from app.models.user import User
 from app.services import notification_service
-from app.services.task_service import next_due_date as _next_due_date
+from app.services.task_service import build_next_occurrence
 
 logger = logging.getLogger(__name__)
 
@@ -35,18 +35,7 @@ async def _create_next_occurrence(db: AsyncSession, task: Task) -> None:
     # The just-notified occurrence and the newly spawned next occurrence are
     # committed together in a single transaction, so a crash mid-way never
     # leaves a recurring task without exactly one active successor.
-    new_task = Task(
-        user_id=task.user_id,
-        title=task.title,
-        description=task.description,
-        due_date=_next_due_date(task.due_date, task.repeat_type),
-        due_time=task.due_time,
-        repeat_type=task.repeat_type,
-        category_id=task.category_id,
-        priority=task.priority,
-        status=TaskStatus.PENDING,
-        created_via=task.created_via,
-    )
+    new_task = build_next_occurrence(task)
     task.status = TaskStatus.COMPLETED
     db.add(new_task)
     await db.commit()

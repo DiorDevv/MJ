@@ -48,6 +48,25 @@ def next_due_date(current: date, repeat_type: RepeatType) -> date:
     return _add_one_month(current)
 
 
+def build_next_occurrence(task: Task) -> Task:
+    """A fresh PENDING copy of `task` shifted to its next due date. Every place a
+    recurring occurrence ends — completed by the user, skipped, or auto-advanced
+    by the scheduler when its reminder fires — spawns its successor this way, so
+    each occurrence is its own row and the series never silently stops."""
+    return Task(
+        user_id=task.user_id,
+        title=task.title,
+        description=task.description,
+        due_date=next_due_date(task.due_date, task.repeat_type),
+        due_time=task.due_time,
+        repeat_type=task.repeat_type,
+        category_id=task.category_id,
+        priority=task.priority,
+        status=TaskStatus.PENDING,
+        created_via=task.created_via,
+    )
+
+
 async def _get_owned_category(
     db: AsyncSession, user_id: uuid.UUID, category_id: uuid.UUID
 ) -> Category:
@@ -226,6 +245,11 @@ async def complete_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID
     task = await get_task(db, user_id, task_id)
     task.status = TaskStatus.COMPLETED
     task.snoozed_until = None
+    # Completing a recurring occurrence early (before its reminder fires) must
+    # still leave the next one behind — otherwise the series ends here, since the
+    # scheduler only ever advances a task that is still PENDING at its due time.
+    if task.repeat_type != RepeatType.NONE:
+        db.add(build_next_occurrence(task))
     await db.commit()
     task = await _reload_task(db, task.id)
     return task
@@ -275,18 +299,7 @@ async def skip_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID) ->
     if task.repeat_type == RepeatType.NONE:
         raise CannotSkipNonRecurringTaskError()
 
-    next_task = Task(
-        user_id=task.user_id,
-        title=task.title,
-        description=task.description,
-        due_date=next_due_date(task.due_date, task.repeat_type),
-        due_time=task.due_time,
-        repeat_type=task.repeat_type,
-        category_id=task.category_id,
-        priority=task.priority,
-        status=TaskStatus.PENDING,
-        created_via=task.created_via,
-    )
+    next_task = build_next_occurrence(task)
     db.add(next_task)
     await db.delete(task)
     await db.commit()

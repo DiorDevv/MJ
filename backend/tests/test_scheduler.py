@@ -8,6 +8,7 @@ from app.core.security import hash_password
 from app.models.enums import CreatedVia, Priority, RepeatType, TaskStatus
 from app.models.task import Task
 from app.models.user import User
+from app.services.task_service import next_due_date
 
 
 async def _make_user(db_session: AsyncSession, username: str = "sched_user") -> User:
@@ -108,17 +109,17 @@ async def test_non_repeating_task_stays_pending_after_reminder(db_session: Async
 
 def test_daily_and_weekly_offsets() -> None:
     start = date(2026, 3, 10)
-    assert scheduler._next_due_date(start, RepeatType.DAILY) == date(2026, 3, 11)
-    assert scheduler._next_due_date(start, RepeatType.WEEKLY) == date(2026, 3, 17)
+    assert next_due_date(start, RepeatType.DAILY) == date(2026, 3, 11)
+    assert next_due_date(start, RepeatType.WEEKLY) == date(2026, 3, 17)
 
 
 def test_monthly_recurrence_clamps_to_shorter_month() -> None:
-    assert scheduler._next_due_date(date(2026, 1, 31), RepeatType.MONTHLY) == date(2026, 2, 28)
-    assert scheduler._next_due_date(date(2024, 1, 31), RepeatType.MONTHLY) == date(2024, 2, 29)
+    assert next_due_date(date(2026, 1, 31), RepeatType.MONTHLY) == date(2026, 2, 28)
+    assert next_due_date(date(2024, 1, 31), RepeatType.MONTHLY) == date(2024, 2, 29)
 
 
 def test_monthly_recurrence_wraps_year() -> None:
-    assert scheduler._next_due_date(date(2025, 12, 31), RepeatType.MONTHLY) == date(2026, 1, 31)
+    assert next_due_date(date(2025, 12, 31), RepeatType.MONTHLY) == date(2026, 1, 31)
 
 
 # --- snooze expiry ---
