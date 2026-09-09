@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import FileResponse
@@ -72,10 +73,15 @@ async def get_task(
 async def update_task(
     task_id: uuid.UUID,
     task_in: TaskUpdate,
+    scope: Literal["this", "future"] = Query(
+        default="this",
+        description="'future' also applies template fields to this recurring "
+        "task's not-yet-done later occurrences.",
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Task:
-    return await task_service.update_task(db, current_user.id, task_id, task_in)
+    return await task_service.update_task(db, current_user.id, task_id, task_in, scope=scope)
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

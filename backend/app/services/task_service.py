@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import Select, case, func, select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -64,6 +65,7 @@ def build_next_occurrence(task: Task) -> Task:
         priority=task.priority,
         status=TaskStatus.PENDING,
         created_via=task.created_via,
+        series_id=task.series_id,
     )
 
 
@@ -94,7 +96,9 @@ async def create_task(
     if task_in.category_id is not None:
         await _get_owned_category(db, user_id, task_in.category_id)
 
+    task_id = uuid.uuid4()
     task = Task(
+        id=task_id,
         user_id=user_id,
         title=task_in.title,
         description=task_in.description,
@@ -106,6 +110,9 @@ async def create_task(
         status=TaskStatus.PENDING,
         created_via=CreatedVia.WEB,
         voice_note_path=voice_note_path,
+        # A recurring task starts a series keyed by its own id; every later
+        # occurrence carries the same series_id (see build_next_occurrence).
+        series_id=task_id if task_in.repeat_type != RepeatType.NONE else None,
     )
     db.add(task)
     await db.commit()
@@ -213,8 +220,20 @@ async def list_tasks(
     return list(result.scalars().all()), total
 
 
+# Fields that describe the recurring template (as opposed to this one occurrence)
+# and therefore propagate to future siblings when scope="future".
+_SERIES_TEMPLATE_FIELDS = frozenset(
+    {"title", "description", "due_time", "repeat_type", "category_id", "priority"}
+)
+
+
 async def update_task(
-    db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID, task_in: TaskUpdate
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    task_id: uuid.UUID,
+    task_in: TaskUpdate,
+    *,
+    scope: Literal["this", "future"] = "this",
 ) -> Task:
     task = await get_task(db, user_id, task_id)
     update_data = task_in.model_dump(exclude_unset=True)
@@ -224,6 +243,24 @@ async def update_task(
 
     for field, value in update_data.items():
         setattr(task, field, value)
+
+    # "This and all future occurrences": push the template-level changes onto the
+    # not-yet-done siblings dated on or after this one. due_date/status stay
+    # per-occurrence; completed history is never rewritten.
+    if scope == "future" and task.series_id is not None:
+        template_changes = {f: v for f, v in update_data.items() if f in _SERIES_TEMPLATE_FIELDS}
+        if template_changes:
+            await db.execute(
+                sa_update(Task)
+                .where(
+                    Task.series_id == task.series_id,
+                    Task.user_id == user_id,
+                    Task.id != task.id,
+                    Task.due_date >= task.due_date,
+                    Task.status != TaskStatus.COMPLETED,
+                )
+                .values(**template_changes)
+            )
 
     await db.commit()
     task = await _reload_task(db, task.id)

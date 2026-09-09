@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
-import { Button, Dropdown, Input, Modal, Textarea } from '../ui'
+import { Button, Dropdown, Input, Modal, SegmentedControl, Textarea } from '../ui'
 import type { DropdownOption } from '../ui'
 import { createTaskSchema, type TaskFormValues } from '../../schemas/task'
 import { useCategories, useCreateCategory } from '../../hooks/useCategories'
 import { useCreateTask, useUpdateTask } from '../../hooks/useTaskMutations'
-import type { TaskInput } from '../../api/tasks'
+import type { TaskInput, UpdateScope } from '../../api/tasks'
 import type { Task } from '../../types/task'
 import { showErrorToast, showSuccessToast } from '../../utils/toast'
 import { ApiError } from '../../api/client'
@@ -72,6 +72,8 @@ function TaskForm({ task, defaultDate, onClose }: TaskFormProps) {
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState(DEFAULT_COLOR)
+  const [scope, setScope] = useState<UpdateScope>('this')
+  const isRecurringEdit = isEditing && task != null && task.repeat_type !== 'none'
 
   const schema = createTaskSchema(t)
   const {
@@ -140,7 +142,10 @@ function TaskForm({ task, defaultDate, onClose }: TaskFormProps) {
     }
 
     if (isEditing && task) {
-      updateTaskMutation.mutate({ id: task.id, input }, { onSuccess, onError })
+      updateTaskMutation.mutate(
+        { id: task.id, input, scope: isRecurringEdit ? scope : undefined },
+        { onSuccess, onError },
+      )
     } else {
       createTaskMutation.mutate(input, { onSuccess, onError })
     }
@@ -248,6 +253,22 @@ function TaskForm({ task, defaultDate, onClose }: TaskFormProps) {
           </div>
         )}
       </div>
+
+      {isRecurringEdit && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-foreground">{t('tasks.applyScope')}</span>
+          <SegmentedControl
+            options={[
+              { value: 'this', label: t('tasks.scopeThis') },
+              { value: 'future', label: t('tasks.scopeFuture') },
+            ]}
+            value={scope}
+            onChange={setScope}
+            aria-label={t('tasks.applyScope')}
+            className="w-full [&>label]:flex-1"
+          />
+        </div>
+      )}
 
       <div className="mt-2 flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onClose}>

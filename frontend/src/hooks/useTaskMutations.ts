@@ -9,6 +9,7 @@ import {
   updateTask,
   type SnoozeInput,
   type TaskInput,
+  type UpdateScope,
 } from '../api/tasks'
 import type { Task, TaskListResponse, TaskStatus } from '../types/task'
 import { TASKS_QUERY_KEY } from './useTasks'
@@ -193,7 +194,15 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<TaskInput> }) => updateTask(id, input),
+    mutationFn: ({
+      id,
+      input,
+      scope,
+    }: {
+      id: string
+      input: Partial<TaskInput>
+      scope?: UpdateScope
+    }) => updateTask(id, input, scope),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY] })
     },
