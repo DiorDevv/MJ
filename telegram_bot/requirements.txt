@@ -1,4 +1,9 @@
 aiogram>=3.30,<3.31
+# aiogram routes ALL proxy support (even a plain HTTP proxy) through this
+# package — without it, AiohttpSession(proxy=...) raises at startup. Needed
+# on a proxied / offline VM so the bot can reach api.telegram.org (see
+# telegram_bot/bot.py and deploy/PROKSI-VA-VM.md).
+aiohttp-socks>=0.8,<0.11
 httpx>=0.27,<0.28
 
 # The bot imports app.models / app.db / app.core.config verbatim from the
