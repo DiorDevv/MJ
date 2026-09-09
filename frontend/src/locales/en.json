@@ -166,7 +166,9 @@
     "heatmapMore": "More",
     "tasksCompleted": "Completed",
     "tasksCreated": "Created",
-    "completedOfTotal": "{{completed}} of {{total}}"
+    "completedOfTotal": "{{completed}} of {{total}}",
+    "avgPerDay": "Avg/day",
+    "bestWeekday": "Best weekday"
   },
   "settings": {
     "account": "Account",

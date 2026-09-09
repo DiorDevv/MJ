@@ -22,7 +22,10 @@ vi.mock('../hooks/useStats', () => ({
     isLoading: false,
   }),
   useActivity: () => ({
-    data: { days: [{ date: '2026-01-01', completed: 2, created: 3 }] },
+    data: {
+      days: [{ date: '2026-01-01', completed: 2, created: 3 }],
+      summary: { total_completed: 2, avg_per_day: 0.02, best_weekday: 3 },
+    },
     isLoading: false,
   }),
   useStreak: () => ({ data: { current: 5, longest: 12 }, isLoading: false }),

@@ -84,6 +84,11 @@ async def test_activity_window_is_dense_and_ascending(client: AsyncClient) -> No
     assert days[-1]["created"] >= 1
     assert sum(d["completed"] for d in days[:-1]) == 0
 
+    summary = body["summary"]
+    assert summary["total_completed"] == sum(d["completed"] for d in days)
+    assert summary["avg_per_day"] == round(summary["total_completed"] / 7, 2)
+    assert summary["best_weekday"] == date.today().weekday()
+
 
 async def test_activity_days_param_is_clamped(client: AsyncClient) -> None:
     headers = await register_user(client, "stats_activity_clamp")
