@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # browser silently drops the cookie and every page reload logs the user out.
     cookie_secure: bool | None = None
 
+    # Completed tasks older than this many days are hard-deleted by a daily
+    # scheduler job (recurring occurrences pile up fastest). 0 = keep forever.
+    completed_task_retention_days: int = 0
+
     cors_origins: str = "http://localhost:5173"
 
     vapid_public_key: str = ""

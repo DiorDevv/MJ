@@ -110,6 +110,11 @@ SFTP — `rclone config` orqali) qo'ysangiz, `backup-db.sh` har dumpni o'sha yer
 ham nusxalaydi va offsite retention'ni (`BACKUP_RCLONE_MAX_AGE`, standart 21d)
 kuzatadi.
 
+**Bajarilgan vazifalar retention:** `.env` da `COMPLETED_TASK_RETENTION_DAYS`
+(standart `0` = o'chirmaslik) qo'ysangiz, backend'ning kunlik jadval jarayoni
+shundan eski bajarilgan vazifalarni o'chiradi — takroriy nusxalar cheksiz
+to'planib ketmasligi uchun.
+
 ## Arxitektura
 
 ```
