@@ -11,6 +11,13 @@
 # nginx should be reachable from outside, and the frontend serves as a
 # prebuilt static bundle instead of running `npm run dev`.
 services:
+  nginx:
+    # Dev: the frontend is the Vite dev server on :5173 (below), so nginx must
+    # proxy there — not to :80 like the production nginx.http.conf does.
+    # Compose de-dupes bind mounts by target, so this replaces the base mount.
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
   postgres:
     ports:
       - "5432:5432"
