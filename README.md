@@ -39,6 +39,22 @@ barchasi bitta umumiy PostgreSQL bazasi bilan ishlaydi.
    - API hujjatlari (Swagger): http://localhost:8001/docs (faqat lokal dasturlash uchun —
      pastga qarang)
 
+## VM'ga (server) o'rnatish
+
+Internetsiz / proksi ortidagi VM uchun to'liq qo'llanma va bir buyruqli
+o'rnatuvchi: **[`deploy/VM-DEPLOY.md`](deploy/VM-DEPLOY.md)**. Qisqacha:
+
+```bash
+./deploy/vm-setup.sh --proxy http://PROXY_HOST:3128   # .env + build + up, hammasi
+./deploy/vm-update.sh                                 # yangi versiyaga o'tish
+./deploy/vm-fix-db-auth.sh                            # "password authentication failed" ni tuzatish
+./deploy/bundle.sh                                    # air-gap: image'larni bitta arxivga
+```
+
+Proksi qanday ulanishi (build-arg + runtime `environment:` + Docker demoni):
+[`deploy/PROKSI-VA-VM.md`](deploy/PROKSI-VA-VM.md). Production `.env` namunasi:
+[`.env.prod.example`](.env.prod.example).
+
 ## Lokal portlar va production
 
 `docker-compose.yml` — production uchun xavfsiz asosiy fayl: faqat `nginx` xost portiga

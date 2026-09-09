@@ -1,5 +1,19 @@
 FROM python:3.11-slim
 
+# --- Proksi (internetsiz VM: build vaqtida apt + pip Squid orqali chiqadi) ----
+# .env -> docker-compose build.args -> shu ARG'lar. Bo'sh bo'lsa proksisiz ishlaydi.
+# NO_PROXY ga ichki compose hostlarini (postgres, backend, ...) qo'shing —
+# aks holda konteynerlararo trafik ham proksiga yuboriladi va buziladi.
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG NO_PROXY=
+ENV HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    no_proxy=${NO_PROXY}
+
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
