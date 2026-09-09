@@ -1,4 +1,4 @@
-# VM'da to'liq ishga tushirish (production, HTTP `:80`)
+# VM'da to'liq ishga tushirish (production, HTTP `:8070`)
 
 Boshdan oxirigacha. VM — Ubuntu/Debian, Squid proksi ortida (to'g'ridan internet yo'q).
 Almashtiring: `PROXY_HOST:3128` (Squid), `<VM-IP>` (VM manzili).
@@ -21,14 +21,16 @@ sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$(openssl rand -hex 32)|" .env
 docker compose -f docker-compose.yml up -d --build
 ```
 
-So'ng `sudo ufw allow 80/tcp` (+ cloud SG) → `http://<VM-IP>`.
+`.env.prod.example` da `NGINX_PORT=8070` — ilova shu portda ochiladi. So'ng
+`sudo ufw allow 8070/tcp` (+ cloud SG) → `http://<VM-IP>:8070`.
 
 **Internetsiz VM (Squid)** — bitta skript hammasini qiladi (Docker/proksi
 tekshiruvi, `.env` ni tasodifiy sirlar + VAPID bilan yaratish, stack'ni ko'tarish):
 
 ```bash
 ./deploy/vm-setup.sh --proxy http://PROXY_HOST:3128
-#  ixtiyoriy: --port 8080 --bot-token 123:ABC --no-build
+#  standart port 8070; o'zgartirish: --port 80
+#  ixtiyoriy: --bot-token 123:ABC --no-build
 ```
 
 Yangilash: `./deploy/vm-update.sh`. Air-gap (proksi ham yo'q): "B yo'li" (pastda).
@@ -130,8 +132,8 @@ nano .env
 | `SECRET_KEY` | `openssl rand -hex 32` |
 | `HTTP_PROXY` / `HTTPS_PROXY` | `http://PROXY_HOST:3128` |
 | `NO_PROXY` | `localhost,127.0.0.1,::1,postgres,backend,frontend,bot,speaches,nginx` (o'zgartirmang) |
-| `CORS_ORIGINS` | `http://<VM-IP>` (yoki domen) |
-| `NGINX_PORT` | `80` (band bo'lsa boshqasi) |
+| `CORS_ORIGINS` | `http://<VM-IP>:8070` (yoki domen) — port `NGINX_PORT` bilan bir xil |
+| `NGINX_PORT` | `8070` (standart; band bo'lsa boshqasi + `CORS_ORIGINS` ni moslang) |
 | `TELEGRAM_BOT_TOKEN` | @BotFather tokeni (bo'sh bo'lsa bot qulaydi, qolgani ishlaydi) |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` (bo'sh bo'lsa Web Push o'chiq) |
 
@@ -165,7 +167,7 @@ Backend startida avtomatik: PostgreSQL kutadi → `alembic upgrade head` → uvi
 
 ```bash
 docker compose -f docker-compose.yml ps        # 6 xizmat "Up" (postgres "healthy")
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost/         # 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8070/    # 200
 docker compose -f docker-compose.yml exec -T backend \
   python -c "import urllib.request;print(urllib.request.urlopen('http://localhost:8000/health').read())"
 ```
@@ -175,11 +177,11 @@ Loglar: `docker compose -f docker-compose.yml logs -f`
 ## 8. Portni tashqariga ochish
 
 ```bash
-sudo ufw allow 80/tcp
+sudo ufw allow 8070/tcp        # NGINX_PORT bilan bir xil
 ```
 
-Bulutli VM bo'lsa — **security group / firewall** da ham 80/TCP kirish ruxsatini
-qo'shing. So'ng brauzerdan: **`http://<VM-IP>`**
+Bulutli VM bo'lsa — **security group / firewall** da ham 8070/TCP kirish ruxsatini
+qo'shing. So'ng brauzerdan: **`http://<VM-IP>:8070`**
 
 ## 9. Birinchi kirish
 
@@ -223,6 +225,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 `80` ochiq qolsin (ACME + HTTP→HTTPS redirect), `443` ni ham oching.
 Keyingi har `up`/`logs`/`down` da ikkala `-f` faylni bering.
+
+> HTTPS overlay standart `80`/`443` portlarida ishlaydi — bu holatda `NGINX_PORT`
+> (8070) ishlatilmaydi, shu sabab 8070 ni tashqaridan yopsangiz bo'ladi.
 
 ---
 

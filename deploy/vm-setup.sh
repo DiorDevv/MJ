@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ============================================================
-#  MJ — VM'da bir buyruqli o'rnatuvchi (HTTP, :80)
+#  MJ — VM'da bir buyruqli o'rnatuvchi (HTTP, standart port :8070)
 #
 #  Foydalanish (repo ildizidan yoki deploy/ ichidan):
 #    ./deploy/vm-setup.sh                                 # proksi Docker demonidan avtomatik olinadi
 #    ./deploy/vm-setup.sh --proxy http://10.0.0.5:3128    # proksini qo'lda berish
-#    ./deploy/vm-setup.sh --port 8080                     # tashqi HTTP portni o'zgartirish
+#    ./deploy/vm-setup.sh --port 80                       # tashqi HTTP portni o'zgartirish (standart 8070)
 #    ./deploy/vm-setup.sh --bot-token 123:ABC             # Telegram bot tokeni
 #    ./deploy/vm-setup.sh --no-build                      # air-gap: oldindan `docker load` qilingan
 #
@@ -26,7 +26,7 @@ cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
 PROXY=""
-PORT="80"
+PORT="8070"
 PORT_SET=0
 BOT_TOKEN=""
 BUILD_FLAG="--build"
@@ -143,7 +143,7 @@ if [ "$GENERATED" = 1 ] || [ "$PORT_SET" = 1 ]; then
 fi
 
 # Amaldagi portni .env dan aniqlaymiz (foydalanuvchi qo'lda o'zgartirgan bo'lishi mumkin)
-PORT="$(grep -E '^NGINX_PORT=' "$ROOT/.env" | head -1 | cut -d= -f2)"; PORT="${PORT:-80}"
+PORT="$(grep -E '^NGINX_PORT=' "$ROOT/.env" | head -1 | cut -d= -f2)"; PORT="${PORT:-8070}"
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"; IP="${IP:-localhost}"
 ORIGIN="http://${IP}"; [ "$PORT" = "80" ] || ORIGIN="http://${IP}:${PORT}"
