@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Button, Input } from '../ui'
+import { Pencil, Plus, Tag, Trash2 } from 'lucide-react'
+import { Button, Card, Input } from '../ui'
 import {
   useCategories,
   useCreateCategory,
@@ -178,11 +178,10 @@ export function CategoriesSection() {
   const { data: categories = [], isLoading } = useCategories()
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-5">
-      <h2 className="text-sm font-semibold text-foreground">{t('settings.categories')}</h2>
-      <p className="mt-1 text-sm text-muted">{t('settings.categoriesDescription')}</p>
+    <Card title={t('settings.categories')} icon={<Tag className="size-4" aria-hidden="true" />}>
+      <p className="-mt-2 mb-3 text-sm text-muted">{t('settings.categoriesDescription')}</p>
 
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         {isLoading && <p className="text-sm text-muted">{t('common.loading')}</p>}
         {!isLoading && categories.length === 0 && (
           <p className="text-sm text-muted">{t('settings.noCategories')}</p>
@@ -192,6 +191,6 @@ export function CategoriesSection() {
         ))}
         <NewCategoryRow />
       </div>
-    </section>
+    </Card>
   )
 }
