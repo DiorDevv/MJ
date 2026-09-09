@@ -115,6 +115,16 @@ kuzatadi.
 shundan eski bajarilgan vazifalarni o'chiradi — takroriy nusxalar cheksiz
 to'planib ketmasligi uchun.
 
+## Kuzatuv (observability)
+
+- **Log:** `ENVIRONMENT=development` dan boshqa hamma joyda backend/bot JSON
+  formatda log yozadi (`LOG_JSON=true/false` bilan majburlash mumkin). Har log
+  qatorida `request_id` bo'ladi; har HTTP javob `X-Request-ID` sarlavhasini
+  qaytaradi (kirish sarlavhasi bo'lsa — o'shani).
+- **Xatoliklar:** `.env` da `SENTRY_DSN` to'ldirilsa backend Sentry'ga xatolik
+  hisobotlarini yuboradi (`SENTRY_TRACES_SAMPLE_RATE` — tracing ulushi). Bo'sh —
+  o'chiq, hech narsa yuborilmaydi.
+
 ## Arxitektura
 
 ```

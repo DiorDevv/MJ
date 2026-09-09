@@ -35,6 +35,13 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = ""
 
+    # --- Observability (both opt-in) ---
+    # JSON-structured logs. Unset -> on unless environment == "development".
+    log_json: bool | None = None
+    # Error reporting. Empty -> Sentry disabled.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+
     # Any OpenAI-compatible /v1/audio/transcriptions backend — the hosted OpenAI
     # API by default, or a self-hosted server (e.g. speaches, see docker-compose.yml)
     # by pointing stt_base_url at it and leaving stt_api_key blank.
@@ -45,11 +52,11 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
-    @field_validator("cookie_secure", mode="before")
+    @field_validator("cookie_secure", "log_json", mode="before")
     @classmethod
-    def _blank_cookie_secure_is_unset(cls, v: object) -> object:
-        # An empty COOKIE_SECURE= line in .env means "not set" (derive from
-        # environment), not an invalid bool.
+    def _blank_optional_bool_is_unset(cls, v: object) -> object:
+        # An empty `KEY=` line in .env means "not set" (derive from environment),
+        # not an invalid bool.
         if isinstance(v, str) and v.strip() == "":
             return None
         return v
@@ -62,6 +69,12 @@ class Settings(BaseSettings):
     def refresh_cookie_secure(self) -> bool:
         if self.cookie_secure is not None:
             return self.cookie_secure
+        return self.environment != "development"
+
+    @property
+    def logs_as_json(self) -> bool:
+        if self.log_json is not None:
+            return self.log_json
         return self.environment != "development"
 
 
