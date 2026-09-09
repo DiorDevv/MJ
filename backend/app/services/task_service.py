@@ -245,6 +245,7 @@ async def complete_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID
     task = await get_task(db, user_id, task_id)
     task.status = TaskStatus.COMPLETED
     task.snoozed_until = None
+    task.completed_at = datetime.now(UTC)
     # Completing a recurring occurrence early (before its reminder fires) must
     # still leave the next one behind — otherwise the series ends here, since the
     # scheduler only ever advances a task that is still PENDING at its due time.
@@ -259,6 +260,7 @@ async def reopen_task(db: AsyncSession, user_id: uuid.UUID, task_id: uuid.UUID) 
     task = await get_task(db, user_id, task_id)
     task.status = TaskStatus.PENDING
     task.snoozed_until = None
+    task.completed_at = None
     await db.commit()
     task = await _reload_task(db, task.id)
     return task

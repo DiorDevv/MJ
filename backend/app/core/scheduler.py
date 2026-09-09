@@ -37,6 +37,7 @@ async def _create_next_occurrence(db: AsyncSession, task: Task) -> None:
     # leaves a recurring task without exactly one active successor.
     new_task = build_next_occurrence(task)
     task.status = TaskStatus.COMPLETED
+    task.completed_at = datetime.now(UTC)
     db.add(new_task)
     await db.commit()
 
