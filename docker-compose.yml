@@ -52,6 +52,17 @@ services:
       # Shared with `bot` (see below) — the bot writes voice quick-add recordings
       # here, the backend serves them back via GET /tasks/{id}/voice.
       - ./shared:/app/shared
+    healthcheck:
+      # No curl in python:3.11-slim — probe /health with the stdlib instead.
+      test:
+        ["CMD", "python", "-c",
+         "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # Migrations + seed on a slow/loaded VM can take a while on first boot;
+      # failing checks in this window must not flip the container to unhealthy.
+      start_period: 90s
     networks:
       - mj_network
 
@@ -77,6 +88,14 @@ services:
     # No host port mapping: reached only via the nginx reverse proxy. For
     # local direct access to the Vite dev server, see docker-compose.override.yml
     # (which also switches build.target back to "dev").
+    healthcheck:
+      # Production stage: nginx:alpine serving the static bundle on :80.
+      # docker-compose.override.yml overrides this for the Vite dev server (:5173).
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - mj_network
 
@@ -150,8 +169,16 @@ services:
       # docker-compose.override.yml swaps this for nginx.conf (Vite :5173) in dev.
       - ./nginx/nginx.http.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - mj_network
 

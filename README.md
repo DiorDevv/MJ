@@ -136,6 +136,10 @@ black --check app && ruff check app && mypy app
 ```bash
 cd frontend
 npm install
-npm run typecheck && npm run lint && npm run build
+npm run typecheck && npm run lint && npm run format:check && npm run build
 npm test               # Vitest + Testing Library
 ```
+
+Aynan shu tekshiruvlar har `push` (main) va har PR'da GitHub Actions'da avtomatik
+ishlaydi — `.github/workflows/ci.yml` (backend: black/ruff/mypy/pytest bilan
+alohida Postgres xizmati; frontend: typecheck/lint/format/test/build).

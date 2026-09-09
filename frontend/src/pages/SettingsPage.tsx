@@ -44,7 +44,8 @@ export function SettingsPage() {
           <p className="text-sm font-medium text-foreground">{user?.username}</p>
           {user?.created_at && (
             <p className="mt-1 text-xs text-muted">
-              {t('settings.memberSince')}: {format(new Date(user.created_at), 'd MMMM yyyy', { locale })}
+              {t('settings.memberSince')}:{' '}
+              {format(new Date(user.created_at), 'd MMMM yyyy', { locale })}
             </p>
           )}
         </Card>
