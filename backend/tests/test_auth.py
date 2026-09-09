@@ -194,3 +194,59 @@ async def test_login_rate_limited_after_repeated_failures(client: AsyncClient) -
         "/api/v1/auth/login", json={"username": "liam", "password": "wrongpassword"}
     )
     assert limited.status_code == 429
+
+
+async def test_change_password_flow(client: AsyncClient) -> None:
+    headers = await register_user(client, "pw_changer")
+
+    wrong = await client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "nope", "new_password": "brandnewpass1"},
+        headers=headers,
+    )
+    assert wrong.status_code == 401
+
+    ok = await client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "supersecret123", "new_password": "brandnewpass1"},
+        headers=headers,
+    )
+    assert ok.status_code == 200
+    assert "access_token" in ok.json()
+
+    # old password no longer works, new one does
+    old = await client.post(
+        "/api/v1/auth/login", json={"username": "pw_changer", "password": "supersecret123"}
+    )
+    assert old.status_code == 401
+    new = await client.post(
+        "/api/v1/auth/login", json={"username": "pw_changer", "password": "brandnewpass1"}
+    )
+    assert new.status_code == 200
+
+
+async def test_change_password_too_short_rejected(client: AsyncClient) -> None:
+    headers = await register_user(client, "pw_short")
+    resp = await client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "supersecret123", "new_password": "short"},
+        headers=headers,
+    )
+    assert resp.status_code == 422
+
+
+async def test_telegram_unlink_clears_link(client: AsyncClient, db_session) -> None:  # type: ignore[no-untyped-def]
+    from sqlalchemy import select
+
+    from app.models.user import User
+
+    headers = await register_user(client, "tg_unlinker")
+    user = (
+        await db_session.execute(select(User).where(User.username == "tg_unlinker"))
+    ).scalar_one()
+    user.telegram_chat_id = 555000111
+    await db_session.commit()
+
+    resp = await client.post("/api/v1/auth/telegram/unlink", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["telegram_chat_id"] is None

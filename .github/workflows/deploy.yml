@@ -1,0 +1,54 @@
+name: Deploy
+
+# Runs after the CI workflow succeeds on main. No-op until the VM_* repo
+# secrets are set, so forks / fresh clones aren't affected.
+#
+# Required repository secrets:
+#   VM_HOST      - VM hostname or IP
+#   VM_USER      - SSH user
+#   VM_SSH_KEY   - that user's private key (PEM)
+#   VM_PATH      - absolute path to the checked-out repo on the VM (e.g. /home/you/MJ)
+#   VM_PORT      - SSH port (optional, defaults to 22)
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' ||
+           github.event.workflow_run.conclusion == 'success') }}
+    steps:
+      - name: Guard — secrets configured?
+        id: guard
+        run: |
+          if [ -z "${{ secrets.VM_HOST }}" ]; then
+            echo "VM_* secrets not set — skipping deploy."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: SSH deploy
+        if: steps.guard.outputs.skip != 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VM_PATH }}"
+            git fetch --prune
+            git checkout main
+            git pull --ff-only
+            docker compose -f docker-compose.yml up -d --build --wait
+            docker compose -f docker-compose.yml ps

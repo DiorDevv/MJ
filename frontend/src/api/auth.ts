@@ -43,3 +43,17 @@ export interface NotificationPreferences {
 export function updateNotificationPreferences(prefs: NotificationPreferences): Promise<UserRead> {
   return authorizedRequest<UserRead>('/v1/auth/me', { method: 'PATCH', body: prefs })
 }
+
+export function changePassword(body: {
+  current_password: string
+  new_password: string
+}): Promise<TokenResponse> {
+  return authorizedRequest<TokenResponse>('/v1/auth/change-password', {
+    method: 'POST',
+    body,
+  })
+}
+
+export function unlinkTelegram(): Promise<UserRead> {
+  return authorizedRequest<UserRead>('/v1/auth/telegram/unlink', { method: 'POST' })
+}

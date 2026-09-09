@@ -210,7 +210,17 @@
     "quietHoursEnable": "Jim soatlarni yoqish",
     "quietHoursFrom": "Dan",
     "quietHoursTo": "Gacha",
-    "quietHoursSaved": "Jim soatlar saqlandi"
+    "quietHoursSaved": "Jim soatlar saqlandi",
+    "password": "Parol",
+    "changePassword": "Parolni o'zgartirish",
+    "currentPassword": "Joriy parol",
+    "newPassword": "Yangi parol",
+    "confirmNewPassword": "Yangi parolni tasdiqlang",
+    "passwordChangeHint": "Saqlangach boshqa qurilmalardagi seanslar tugatiladi.",
+    "passwordChanged": "Parol o'zgartirildi",
+    "passwordChangeError": "Parolni o'zgartirib bo'lmadi",
+    "telegramUnlink": "Uzish",
+    "telegramUnlinked": "Telegram uzildi"
   },
   "errors": {
     "notFoundTitle": "Sahifa topilmadi",

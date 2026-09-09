@@ -4,21 +4,37 @@ import { Bell, BellOff, MessageCircle, UserRound } from 'lucide-react'
 import { format } from 'date-fns'
 import { enUS, uz } from 'date-fns/locale'
 import { useWebPush } from '../hooks/useWebPush'
+import { useMutation } from '@tanstack/react-query'
 import { Badge, Button, Card } from '../components/ui'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Page } from '../components/layout/Page'
 import { TelegramLinkModal } from '../components/settings/TelegramLinkModal'
 import { CategoriesSection } from '../components/settings/CategoriesSection'
 import { QuietHoursSection } from '../components/settings/QuietHoursSection'
+import { ChangePasswordSection } from '../components/settings/ChangePasswordSection'
+import { unlinkTelegram } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
 import { showErrorToast, showSuccessToast } from '../utils/toast'
+import { ApiError } from '../api/client'
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation()
   const { permission, isSubscribed, isLoading, isSupported, subscribe, unsubscribe } = useWebPush()
   const user = useAuthStore((state) => state.user)
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const setAuth = useAuthStore((state) => state.setAuth)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const locale = i18n.language.startsWith('en') ? enUS : uz
+
+  const unlinkMutation = useMutation({
+    mutationFn: unlinkTelegram,
+    onSuccess: (updated) => {
+      if (accessToken) setAuth(accessToken, updated)
+      showSuccessToast(t('settings.telegramUnlinked'))
+    },
+    onError: (error) =>
+      showErrorToast(error instanceof ApiError ? error.message : t('tasks.loadError')),
+  })
 
   const handleToggle = async () => {
     try {
@@ -50,6 +66,8 @@ export function SettingsPage() {
             </p>
           )}
         </Card>
+
+        <ChangePasswordSection />
 
         <CategoriesSection />
 
@@ -97,9 +115,18 @@ export function SettingsPage() {
             <Badge variant={user?.telegram_chat_id ? 'success' : 'default'}>
               {t(user?.telegram_chat_id ? 'settings.telegramLinked' : 'settings.telegramNotLinked')}
             </Badge>
-            {!user?.telegram_chat_id && (
+            {!user?.telegram_chat_id ? (
               <Button size="sm" onClick={() => setIsLinkModalOpen(true)}>
                 {t('settings.telegramLinkCta')}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                isLoading={unlinkMutation.isPending}
+                onClick={() => unlinkMutation.mutate()}
+              >
+                {t('settings.telegramUnlink')}
               </Button>
             )}
           </div>

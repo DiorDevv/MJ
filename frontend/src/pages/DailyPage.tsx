@@ -36,6 +36,11 @@ export function DailyPage() {
   const isLoading = overdueQuery.isLoading || todayQuery.isLoading
   const overdueTasks = overdueQuery.data?.items ?? []
   const todayTasks = todayQuery.data?.items ?? []
+  // A task due today whose time has already passed matches both server filters —
+  // the stats still count it under "due today", but the today *table* drops it so
+  // it isn't listed twice (it shows in the overdue section instead).
+  const overdueIds = new Set(overdueTasks.map((task) => task.id))
+  const todayOnlyTasks = todayTasks.filter((task) => !overdueIds.has(task.id))
   const isEmpty = !isLoading && overdueTasks.length === 0 && todayTasks.length === 0
 
   const locale = i18n.language.startsWith('en') ? enUS : uz
@@ -116,12 +121,12 @@ export function DailyPage() {
         </section>
       )}
 
-      {todayTasks.length > 0 && (
+      {todayOnlyTasks.length > 0 && (
         <section className="flex flex-col gap-3">
           {overdueTasks.length > 0 && (
-            <SectionHeading label={t('tasks.todaySection')} count={todayTasks.length} />
+            <SectionHeading label={t('tasks.todaySection')} count={todayOnlyTasks.length} />
           )}
-          <TaskTable tasks={todayTasks} onEdit={setModalTask} />
+          <TaskTable tasks={todayOnlyTasks} onEdit={setModalTask} />
         </section>
       )}
 

@@ -210,7 +210,17 @@
     "quietHoursEnable": "Enable quiet hours",
     "quietHoursFrom": "From",
     "quietHoursTo": "To",
-    "quietHoursSaved": "Quiet hours saved"
+    "quietHoursSaved": "Quiet hours saved",
+    "password": "Password",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "passwordChangeHint": "Saving signs you out of other devices.",
+    "passwordChanged": "Password changed",
+    "passwordChangeError": "Could not change the password",
+    "telegramUnlink": "Unlink",
+    "telegramUnlinked": "Telegram unlinked"
   },
   "errors": {
     "notFoundTitle": "Page not found",
