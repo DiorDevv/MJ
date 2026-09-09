@@ -46,7 +46,7 @@ async def _issue_tokens(db: AsyncSession, response: Response, user_id: uuid.UUID
         key=REFRESH_COOKIE_NAME,
         value=refresh_token,
         httponly=True,
-        secure=settings.environment != "development",
+        secure=settings.refresh_cookie_secure,
         samesite="lax",
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path=REFRESH_COOKIE_PATH,

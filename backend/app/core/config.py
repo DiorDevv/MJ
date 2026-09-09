@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30
+
+    # Whether the refresh-token cookie gets the `Secure` flag (HTTPS-only).
+    # Leave unset to derive it from `environment` (secure everywhere except
+    # "development"). Set it explicitly to `false` when serving production over
+    # plain HTTP — e.g. an internal VM reached by IP with no TLS — otherwise the
+    # browser silently drops the cookie and every page reload logs the user out.
+    cookie_secure: bool | None = None
 
     cors_origins: str = "http://localhost:5173"
 
@@ -33,9 +41,24 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
+    @field_validator("cookie_secure", mode="before")
+    @classmethod
+    def _blank_cookie_secure_is_unset(cls, v: object) -> object:
+        # An empty COOKIE_SECURE= line in .env means "not set" (derive from
+        # environment), not an invalid bool.
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def refresh_cookie_secure(self) -> bool:
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.environment != "development"
 
 
 @lru_cache
