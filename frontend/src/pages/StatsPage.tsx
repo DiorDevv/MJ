@@ -181,7 +181,7 @@ export function StatsPage() {
             className="md:col-span-2 lg:col-span-3"
           >
             <ActivityHeatmap days={activity.data?.days ?? []} />
-            {activity.data && activity.data.summary.total_completed > 0 && (
+            {activity.data?.summary && activity.data.summary.total_completed > 0 && (
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                 <span>
                   {t('stats.avgPerDay')}:{' '}

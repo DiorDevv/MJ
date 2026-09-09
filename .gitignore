@@ -44,3 +44,8 @@ backups/
 
 # --- User-uploaded voice recordings (never commit) ---
 shared/voice_notes/*.ogg
+
+# --- Playwright (frontend E2E) ---
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/

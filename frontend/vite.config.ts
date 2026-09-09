@@ -16,5 +16,7 @@ export default defineConfig({
     // Pinned so date/timezone tests are deterministic regardless of the host
     // machine's TZ, matching the app's actual deployed timezone (see docker-compose.yml).
     env: { TZ: 'Asia/Tashkent' },
+    // e2e/ is Playwright's — it drives a real running stack, not jsdom.
+    exclude: ['node_modules', 'dist', 'e2e/**'],
   },
 })
