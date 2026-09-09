@@ -1,0 +1,49 @@
+# ============================================================
+#  MJ — avtomatik HTTPS (Caddy + Let's Encrypt). docker-compose.yml USTIGA.
+#
+#  Sertifikat boshqarish YO'Q — Caddy DOMEN uchun sertifikatni o'zi oladi va
+#  yangilaydi. `nginx` tashqariga chiqmaydi, faqat Caddy 80/443 da turadi.
+#
+#  Shart:  .env da  DOMAIN=sizning-domen.com  va  COOKIE_SECURE=true  va
+#          CORS_ORIGINS=https://sizning-domen.com ;  80+443 portlari ochiq ;
+#          DNS: DOMAIN -> VM IP (A yozuv), VM internetdan ko'rinadi (ACME).
+#
+#  Ishga tushirish:
+#    docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+#
+#  (Sertifikatni qo'lda boshqarmoqchi bo'lsangiz — docker-compose.prod.yml dan
+#   foydalaning, u nginx/certs/ dagi fayllarni kutadi.)
+# ============================================================
+services:
+  nginx:
+    # Tashqariga faqat Caddy orqali — nginx host portini bekor qilamiz.
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: mj_caddy
+    restart: unless-stopped
+    depends_on:
+      nginx:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?docker-compose.caddy.yml uchun .env da DOMAIN belgilanishi shart}
+    volumes:
+      - ./nginx/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - mj_network
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,9 @@
+# MJ — Caddy (docker-compose.caddy.yml bilan). $DOMAIN .env dan olinadi.
+# Caddy $DOMAIN uchun Let's Encrypt sertifikatini avtomatik oladi/yangilaydi
+# (80 va 443 portlari ochiq bo'lsin, DNS: DOMAIN -> VM IP).
+
+{$DOMAIN} {
+	encode gzip
+	# nginx (ichki :80) hamma marshrutni biladi: / -> statik frontend, /api -> backend.
+	reverse_proxy nginx:80
+}

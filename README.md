@@ -95,12 +95,20 @@ yakuniy image'da umuman yo'q).
 ## Zaxira nusxa
 
 ```bash
-./scripts/backup-db.sh                              # backups/mj_db_<sana>.sql.gz yaratadi
+./scripts/backup-db.sh                               # backups/mj_db_<sana>.sql.gz yaratadi
 ./scripts/restore-db.sh backups/mj_db_2026....sql.gz # joriy ma'lumotlarni ALMASHTIRADI
+./scripts/install-backup-cron.sh                     # kunlik 03:00 cron o'rnatadi
 ```
 
-`postgres_data` — oddiy Docker volume, o'zining zaxira mexanizmi yo'q, shu skriptni
-muntazam (masalan kunlik cron orqali) ishga tushirish tavsiya etiladi.
+`postgres_data` — oddiy Docker volume, o'zining zaxira mexanizmi yo'q. Kunlik
+avtomatlashtirish: yuqoridagi cron, yoki systemd —
+`deploy/systemd/mj-backup.{service,timer}` (ichida o'rnatish yo'riqnomasi).
+
+**Offsite:** lokal `backups/` papkasi VM bilan birga yo'qoladi. `.env` da
+`BACKUP_RCLONE_REMOTE` ni sozlangan rclone remote'ga (S3 / B2 / Google Drive /
+SFTP — `rclone config` orqali) qo'ysangiz, `backup-db.sh` har dumpni o'sha yerga
+ham nusxalaydi va offsite retention'ni (`BACKUP_RCLONE_MAX_AGE`, standart 21d)
+kuzatadi.
 
 ## Arxitektura
 

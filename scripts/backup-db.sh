@@ -31,3 +31,22 @@ if [ "${#old_backups[@]}" -gt 0 ]; then
   rm -f "${old_backups[@]}"
   echo "Pruned ${#old_backups[@]} old backup(s), keeping newest $KEEP_COUNT"
 fi
+
+# --- Offsite copy (optional) ---------------------------------------------------
+# The local backups/ dir dies with the VM. Set BACKUP_RCLONE_REMOTE in .env to a
+# configured rclone remote+path (e.g. "b2:mj-backups" or "gdrive:mj/backups") to
+# also push each new dump offsite. rclone is a single static binary and supports
+# S3 / B2 / Google Drive / SFTP / … — `rclone config` sets the remote up once.
+# No remote set => this block is a no-op.
+if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
+  if ! command -v rclone >/dev/null 2>&1; then
+    echo "WARNING: BACKUP_RCLONE_REMOTE set but rclone not installed — skipping offsite copy" >&2
+  else
+    echo "Offsite: rclone copy -> ${BACKUP_RCLONE_REMOTE}"
+    rclone copy "$OUT_FILE" "$BACKUP_RCLONE_REMOTE" --no-traverse
+    # Mirror the local retention window offsite too.
+    rclone delete "$BACKUP_RCLONE_REMOTE" --min-age "${BACKUP_RCLONE_MAX_AGE:-21d}" \
+      --include "mj_db_*.sql.gz" 2>/dev/null || true
+    echo "Offsite copy done"
+  fi
+fi

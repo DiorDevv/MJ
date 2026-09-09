@@ -32,4 +32,8 @@ EXPOSE 8000
 
 # Applies pending migrations before every start, so a fresh `docker compose up`
 # gets a ready schema without a manual `alembic upgrade head` step.
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# --proxy-headers + trust any peer: the backend is never exposed directly, only
+# nginx (and, with the Caddy overlay, Caddy→nginx) reaches it — so honouring
+# X-Forwarded-Proto/-For is safe and makes request.url.scheme / client IP correct
+# behind TLS termination (share links, rate-limit keys).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]

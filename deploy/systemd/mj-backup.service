@@ -1,0 +1,23 @@
+# MJ — kunlik DB zaxira (cron o'rniga systemd bilan).
+#
+# O'rnatish:
+#   1. Quyidagi User= va ...Directory=/ExecStart= dagi YO'LLARNI moslang
+#      (repo qayerda bo'lsa — masalan /home/axmadjonov/MJ).
+#   2. sudo cp deploy/systemd/mj-backup.{service,timer} /etc/systemd/system/
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now mj-backup.timer
+#
+# Tekshirish:  systemctl list-timers mj-backup ; journalctl -u mj-backup -n 30
+[Unit]
+Description=MJ database backup (local + optional offsite via rclone)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# --- MOSLANG: VM foydalanuvchisi va repo yo'li ---
+User=CHANGE_ME_user
+WorkingDirectory=/home/CHANGE_ME_user/MJ
+ExecStart=/home/CHANGE_ME_user/MJ/scripts/backup-db.sh
+Nice=10
+IOSchedulingClass=idle

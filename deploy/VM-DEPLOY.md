@@ -213,21 +213,36 @@ ovozli xabarlar `./shared` volume'ida qoladi.
 
 ## 13. (Ixtiyoriy) Domen + HTTPS
 
-MJ'da tayyor HTTPS overlay bor — `docker-compose.prod.yml` (nginx'ga 443 + TLS
-qo'shadi). Sertifikatni oldindan `nginx/certs/fullchain.pem` va
-`nginx/certs/privkey.pem` ga qo'ying (certbot — `nginx/certs/README.md`).
+**Shart (ikkala usul uchun ham):** DNS'da `DOMAIN -> VM IP` (A yozuv), `80` va
+`443` portlari tashqaridan ochiq, VM internetdan ko'rinadi. `.env`:
+```ini
+DOMAIN=sizning-domen.com
+COOKIE_SECURE=true
+CORS_ORIGINS=https://sizning-domen.com
+# VITE_API_URL=/api  (nisbiy — o'zgartirish shart emas)
+```
+
+### Usul A — Caddy (tavsiya): avtomatik Let's Encrypt
+
+Sertifikatni Caddy o'zi oladi va yangilaydi — hech narsa qo'lda emas.
 
 ```bash
-# .env: VITE_API_URL=/api  (nisbiy — o'zgartirish shart emas)
-#       CORS_ORIGINS=https://sizning-domen.com
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+```
+
+Keyingi har `up`/`logs`/`down` da ikkala `-f` faylni bering. Sertifikat olinganini
+kuzatish: `docker compose -f docker-compose.yml -f docker-compose.caddy.yml logs -f caddy`.
+
+### Usul B — o'zingiz bergan sertifikat (`docker-compose.prod.yml`)
+
+`nginx/certs/fullchain.pem` va `nginx/certs/privkey.pem` ni oldindan qo'ying
+(certbot — `nginx/certs/README.md`), so'ng:
+```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-`80` ochiq qolsin (ACME + HTTP→HTTPS redirect), `443` ni ham oching.
-Keyingi har `up`/`logs`/`down` da ikkala `-f` faylni bering.
-
-> HTTPS overlay standart `80`/`443` portlarida ishlaydi — bu holatda `NGINX_PORT`
-> (8070) ishlatilmaydi, shu sabab 8070 ni tashqaridan yopsangiz bo'ladi.
+> Ikkala usulда ham HTTPS `80`/`443` da ishlaydi — `NGINX_PORT` (8070)
+> ishlatilmaydi, 8070 ni tashqaridan yopsangiz bo'ladi.
 
 ---
 
