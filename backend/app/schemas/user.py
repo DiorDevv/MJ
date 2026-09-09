@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 USERNAME_PATTERN = r"^[a-zA-Z0-9_.]+$"
 
@@ -23,6 +23,21 @@ class UserRead(BaseModel):
     username: str
     telegram_chat_id: int | None
     created_at: datetime
+    quiet_hours_start: time | None = None
+    quiet_hours_end: time | None = None
+
+
+class UserPreferencesUpdate(BaseModel):
+    """Quiet hours: both fields together, or both null to disable."""
+
+    quiet_hours_start: time | None = None
+    quiet_hours_end: time | None = None
+
+    @model_validator(mode="after")
+    def both_or_neither(self) -> "UserPreferencesUpdate":
+        if (self.quiet_hours_start is None) != (self.quiet_hours_end is None):
+            raise ValueError("quiet_hours_start va quiet_hours_end birga berilishi kerak")
+        return self
 
 
 class TokenResponse(BaseModel):

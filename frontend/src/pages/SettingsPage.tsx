@@ -9,6 +9,7 @@ import { PageHeader } from '../components/layout/PageHeader'
 import { Page } from '../components/layout/Page'
 import { TelegramLinkModal } from '../components/settings/TelegramLinkModal'
 import { CategoriesSection } from '../components/settings/CategoriesSection'
+import { QuietHoursSection } from '../components/settings/QuietHoursSection'
 import { useAuthStore } from '../store/authStore'
 import { showErrorToast, showSuccessToast } from '../utils/toast'
 
@@ -84,6 +85,8 @@ export function SettingsPage() {
             </div>
           )}
         </Card>
+
+        <QuietHoursSection />
 
         <Card
           title={t('settings.telegram')}

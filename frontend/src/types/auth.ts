@@ -3,6 +3,9 @@ export interface UserRead {
   username: string
   telegram_chat_id: number | null
   created_at: string
+  /** "HH:MM:SS" local wall-clock, or null when quiet hours are off. */
+  quiet_hours_start: string | null
+  quiet_hours_end: string | null
 }
 
 export interface TokenResponse {

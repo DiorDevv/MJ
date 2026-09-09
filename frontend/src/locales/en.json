@@ -204,7 +204,13 @@
     "categoryDeleted": "Category deleted",
     "memberSince": "Member since",
     "connected": "Connected",
-    "notConnected": "Not connected"
+    "notConnected": "Not connected",
+    "quietHours": "Quiet hours",
+    "quietHoursDescription": "No reminders (Telegram/push) are sent during this window; they go out once it ends.",
+    "quietHoursEnable": "Enable quiet hours",
+    "quietHoursFrom": "From",
+    "quietHoursTo": "To",
+    "quietHoursSaved": "Quiet hours saved"
   },
   "errors": {
     "notFoundTitle": "Page not found",
