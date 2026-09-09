@@ -165,4 +165,10 @@ npm test               # Vitest + Testing Library
 
 Aynan shu tekshiruvlar har `push` (main) va har PR'da GitHub Actions'da avtomatik
 ishlaydi — `.github/workflows/ci.yml` (backend: black/ruff/mypy/pytest bilan
-alohida Postgres xizmati; frontend: typecheck/lint/format/test/build).
+alohida Postgres xizmati; frontend: typecheck/lint/format/test/build; `e2e`:
+`docker compose --wait` + Playwright smoke).
+
+**Avto-deploy:** `.github/workflows/deploy.yml` — CI `main`'da muvaffaqiyatli
+o'tgach VM'ga SSH qilib `git pull` + `docker compose up -d --build` qiladi.
+`VM_HOST` sekret sozlanmaguncha ishlamaydi. Kerakli sekretlar: `VM_HOST`,
+`VM_USER`, `VM_SSH_KEY`, `VM_PATH` (va ixtiyoriy `VM_PORT`).

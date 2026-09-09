@@ -7,11 +7,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.rate_limit import check_rate_limit
-from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 from app.db.session import get_db
-from app.exceptions import InvalidTokenError
+from app.exceptions import InvalidCredentialsError, InvalidTokenError
 from app.models.user import User
 from app.schemas.user import (
+    PasswordChange,
     TelegramLinkCodeResponse,
     TokenResponse,
     UserCreate,
@@ -149,6 +156,37 @@ async def update_preferences(
 ) -> User:
     current_user.quiet_hours_start = prefs.quiet_hours_start
     current_user.quiet_hours_end = prefs.quiet_hours_end
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.post("/change-password", response_model=TokenResponse)
+async def change_password(
+    body: PasswordChange,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise InvalidCredentialsError()
+    current_user.hashed_password = hash_password(body.new_password)
+    # Kill every existing session, then hand *this* one a fresh token+cookie so
+    # the caller stays logged in but other devices are logged out.
+    await auth_service.revoke_all_refresh_tokens(db, current_user.id)
+    await db.commit()
+    access_token = await _issue_tokens(db, response, current_user.id)
+    return TokenResponse(access_token=access_token)
+
+
+@router.post("/telegram/unlink", response_model=UserRead)
+async def unlink_telegram(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    current_user.telegram_chat_id = None
+    current_user.telegram_link_code = None
+    current_user.telegram_link_code_expires_at = None
     await db.commit()
     await db.refresh(current_user)
     return current_user
