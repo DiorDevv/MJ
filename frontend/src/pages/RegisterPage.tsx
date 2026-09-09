@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
+import { Logo } from '../components/layout/Logo'
 import { useTranslation } from 'react-i18next'
 import { Button, Input } from '../components/ui'
 import { createRegisterSchema, type RegisterFormValues } from '../schemas/auth'
@@ -44,6 +45,7 @@ export function RegisterPage() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-sm">
+        <Logo size={40} className="mx-auto mb-4" />
         <h1 className="mb-6 text-center text-2xl font-semibold text-foreground">
           {t('auth.register')}
         </h1>

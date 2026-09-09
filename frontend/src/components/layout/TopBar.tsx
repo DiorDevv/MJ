@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { Logo } from './Logo'
 import { UserMenu } from './UserMenu'
 import { cn } from '../../utils/cn'
 
@@ -40,6 +41,10 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-sm sm:px-6">
+      {/* Brand — only on mobile, where the sidebar (which carries it) is hidden. */}
+      <Link to="/app/today" aria-label={t('app.name')} className="shrink-0 lg:hidden">
+        <Logo size={26} />
+      </Link>
       <form onSubmit={handleSearchSubmit} className="relative min-w-0 max-w-md flex-1">
         <Search
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"

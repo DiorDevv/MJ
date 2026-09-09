@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { ChevronsLeft, ChevronsRight, ListTodo, Plus, type LucideIcon } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Plus, type LucideIcon } from 'lucide-react'
 import { NAV_ITEMS } from '../../config/navigation'
+import { Logo } from './Logo'
 import { cn } from '../../utils/cn'
 
 const COLLAPSE_STORAGE_KEY = 'mj_sidebar_collapsed'
@@ -85,19 +86,13 @@ export function Sidebar() {
           collapsed ? 'w-16' : 'w-60',
         )}
       >
-        <div
-          className={cn(
-            'flex h-14 shrink-0 items-center gap-2.5 px-4',
-            collapsed && 'justify-center px-0',
-          )}
+        <Link
+          to="/app/today"
+          aria-label={t('app.name')}
+          className={cn('flex h-14 shrink-0 items-center px-4', collapsed && 'justify-center px-0')}
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent text-accent-foreground">
-            <ListTodo className="size-4" aria-hidden="true" />
-          </span>
-          {!collapsed && (
-            <span className="truncate text-sm font-semibold text-foreground">{t('app.name')}</span>
-          )}
-        </div>
+          <Logo size={collapsed ? 26 : 30} />
+        </Link>
 
         <div className={cn('px-3', collapsed && 'px-2')}>
           {collapsed ? (
