@@ -137,7 +137,10 @@
     "nextUp": "Next up: {{time}}",
     "moreTasks": "+{{count}} more",
     "rangeLabel": "{{from}}–{{to}} / {{total}}",
-    "noTasks": "No tasks"
+    "noTasks": "No tasks",
+    "applyScope": "Apply changes to",
+    "scopeThis": "This task only",
+    "scopeFuture": "This and future"
   },
   "stats": {
     "daily": "Daily",

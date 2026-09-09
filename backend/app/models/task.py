@@ -56,6 +56,11 @@ class Task(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+    # Shared by every occurrence of one recurring task, so "edit this and all
+    # future occurrences" can find its siblings. NULL for one-off tasks.
+    series_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
     # Filename (not a path) of the original Telegram voice note this task was quick-
     # added from, under app/services/voice_note_service.py's storage dir — kept so a
     # bad transcription can still be double-checked by listening to what was said.

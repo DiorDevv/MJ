@@ -211,6 +211,72 @@ async def test_completing_a_one_off_task_spawns_nothing(client: AsyncClient) -> 
     assert [t["id"] for t in listed.json()["items"]] == [task["id"]]
 
 
+# --- recurring series edits ---
+
+
+async def test_edit_future_propagates_to_pending_siblings(client: AsyncClient) -> None:
+    headers = await register_user(client, "series_editor")
+    first = await _create_task(
+        client, headers, title="Sport", due_date=date(2026, 3, 10), repeat_type="daily"
+    )
+    # complete → spawns occurrence #2, reopen #1 → two pending in the same series.
+    await client.post(f"/api/v1/tasks/{first['id']}/complete", headers=headers)
+    await client.post(f"/api/v1/tasks/{first['id']}/reopen", headers=headers)
+
+    listed = (await client.get("/api/v1/tasks", headers=headers)).json()["items"]
+    assert len(listed) == 2
+    older = min(listed, key=lambda t: t["due_date"])
+    newer = max(listed, key=lambda t: t["due_date"])
+
+    resp = await client.patch(
+        f"/api/v1/tasks/{older['id']}?scope=future",
+        json={"title": "Yugurish", "priority": "high"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+
+    refreshed = {
+        t["id"]: t for t in (await client.get("/api/v1/tasks", headers=headers)).json()["items"]
+    }
+    assert refreshed[older["id"]]["title"] == "Yugurish"
+    assert refreshed[newer["id"]]["title"] == "Yugurish"
+    assert refreshed[newer["id"]]["priority"] == "high"
+    # each occurrence keeps its own date
+    assert refreshed[older["id"]]["due_date"] == "2026-03-10"
+    assert refreshed[newer["id"]]["due_date"] == "2026-03-11"
+
+
+async def test_edit_this_only_leaves_siblings_untouched(client: AsyncClient) -> None:
+    headers = await register_user(client, "series_editor_this")
+    first = await _create_task(
+        client, headers, title="Sport", due_date=date(2026, 3, 10), repeat_type="daily"
+    )
+    await client.post(f"/api/v1/tasks/{first['id']}/complete", headers=headers)
+    await client.post(f"/api/v1/tasks/{first['id']}/reopen", headers=headers)
+    listed = (await client.get("/api/v1/tasks", headers=headers)).json()["items"]
+    older = min(listed, key=lambda t: t["due_date"])
+    newer = max(listed, key=lambda t: t["due_date"])
+
+    # default scope="this"
+    await client.patch(f"/api/v1/tasks/{older['id']}", json={"title": "Faqat shu"}, headers=headers)
+
+    refreshed = {
+        t["id"]: t for t in (await client.get("/api/v1/tasks", headers=headers)).json()["items"]
+    }
+    assert refreshed[older["id"]]["title"] == "Faqat shu"
+    assert refreshed[newer["id"]]["title"] == "Sport"
+
+
+async def test_edit_future_on_one_off_task_is_harmless(client: AsyncClient) -> None:
+    headers = await register_user(client, "series_editor_oneoff")
+    task = await _create_task(client, headers, title="Bir martalik", repeat_type="none")
+    resp = await client.patch(
+        f"/api/v1/tasks/{task['id']}?scope=future", json={"title": "Yangi"}, headers=headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["title"] == "Yangi"
+
+
 async def test_snooze_preset(client: AsyncClient) -> None:
     headers = await register_user(client, "task_snoozer")
     task = await _create_task(client, headers)

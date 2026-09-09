@@ -137,7 +137,10 @@
     "nextUp": "Keyingisi: {{time}}",
     "moreTasks": "+{{count}} ta yana",
     "rangeLabel": "{{from}}–{{to}} / {{total}}",
-    "noTasks": "Vazifa yo'q"
+    "noTasks": "Vazifa yo'q",
+    "applyScope": "O'zgarishni qo'llash",
+    "scopeThis": "Faqat shu vazifa",
+    "scopeFuture": "Shu va keyingilar"
   },
   "stats": {
     "daily": "Kunlik",

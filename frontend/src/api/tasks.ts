@@ -40,8 +40,15 @@ export function createTask(input: TaskInput): Promise<Task> {
   return authorizedRequest<Task>('/v1/tasks', { method: 'POST', body: input })
 }
 
-export function updateTask(id: string, input: Partial<TaskInput>): Promise<Task> {
-  return authorizedRequest<Task>(`/v1/tasks/${id}`, { method: 'PATCH', body: input })
+export type UpdateScope = 'this' | 'future'
+
+export function updateTask(
+  id: string,
+  input: Partial<TaskInput>,
+  scope: UpdateScope = 'this',
+): Promise<Task> {
+  const query = scope === 'future' ? '?scope=future' : ''
+  return authorizedRequest<Task>(`/v1/tasks/${id}${query}`, { method: 'PATCH', body: input })
 }
 
 export function deleteTask(id: string): Promise<void> {
