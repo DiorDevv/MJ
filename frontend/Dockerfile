@@ -1,6 +1,23 @@
 # Shared base: installs deps once, reused by both the dev and build stages.
 FROM node:22-alpine AS base
 WORKDIR /app
+
+# --- Proksi (internetsiz VM: build vaqtida `npm install` Squid orqali chiqadi;
+#     runtime nginx bosqichiga proksi kerak emas) ----------------------------
+# npm standart HTTP_PROXY'ni har doim hurmat qilmaydi -> npm_config_* ham beramiz.
+# .env -> docker-compose build.args -> shu ARG'lar. Bo'sh bo'lsa proksisiz.
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG NO_PROXY=
+ENV HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    no_proxy=${NO_PROXY} \
+    npm_config_proxy=${HTTP_PROXY} \
+    npm_config_https_proxy=${HTTPS_PROXY}
+
 COPY package*.json ./
 RUN npm install
 

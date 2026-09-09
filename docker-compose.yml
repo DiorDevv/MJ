@@ -23,12 +23,25 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      # Proksi ortidagi (internetsiz) VM: .env dagi qiymatlar build vaqti
+      # apt/pip uchun uzatiladi. Odatiy mashinada bo'sh — hech ta'sir qilmaydi.
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+    image: mj-backend
     container_name: mj_backend
     restart: unless-stopped
     env_file:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      # Backend RUNTIME'da tashqariga chiqadi: Telegram eslatmalari
+      # (app/services/notification_service.py) va Web Push (pywebpush).
+      # env_file ham .env dan oladi — bu qator shunchaki oshkora ko'rsatib turadi.
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +65,11 @@ services:
       # as a build arg — a runtime env var would be too late to have any effect.
       args:
         VITE_API_URL: ${VITE_API_URL}
+        # Proksi ortidagi VM: `npm install` build bosqichida shu orqali chiqadi.
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+    image: mj-frontend
     container_name: mj_frontend
     restart: unless-stopped
     depends_on:
@@ -66,12 +84,22 @@ services:
     build:
       context: .
       dockerfile: telegram_bot/Dockerfile
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+    image: mj-bot
     container_name: mj_bot
     restart: unless-stopped
     env_file:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      # Bot RUNTIME'da api.telegram.org ga chiqadi — internetsiz VM'da bu SHART.
+      # env_file ham .env dan oladi; bu qator oshkora ko'rsatib turadi.
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,6 +126,12 @@ services:
     environment:
       WHISPER__INFERENCE_DEVICE: cpu
       WHISPER__COMPUTE_TYPE: int8
+      # speaches BIRINCHI ishga tushishda huggingface.co dan model (~500MB)
+      # yuklaydi — internetsiz VM'da bu proksi orqali ketishi shart. Model
+      # keshlangach (speaches_models volume) tashqi chiqish shart emas.
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
     volumes:
       # Hugging Face model cache — without this, every container recreate
       # re-downloads the model (~500MB for the "small" model) from scratch.
