@@ -11,11 +11,8 @@ from app.api.v1.push import router as push_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.tasks import router as tasks_router
 from app.core.config import settings
-from app.core.observability import (
-    RequestIdMiddleware,
-    configure_logging,
-    init_sentry,
-)
+from app.core.observability import configure_logging, init_sentry
+from app.core.request_id import RequestIdMiddleware
 from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.core.startup_checks import warn_if_insecure_defaults
 from app.exceptions import AppException
